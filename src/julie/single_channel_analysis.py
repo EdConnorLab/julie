@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import matplotlib
 import numpy as np
@@ -10,11 +11,17 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    experiment_data_filename = "1697052348461980_231011_152549_round1.pk1"
-    experiment_name = experiment_data_filename.split(".")[0]
-    file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
+    experiment_data_filename = "1697058662909405_231011_171103_round3.pk1"
+    # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/"
+    # Get the current script directory
+    script_dir = Path(__file__).parent
+
+    # Construct the path from the script directory
+    file_path = (script_dir / '..' / '..' / 'compiled' / 'julie' / experiment_data_filename).resolve()
+    print(file_path)
     raw_data = read_pickle(file_path)
     #   plot_channel_histograms(raw_data, channel=Channel.C_013)
+
 
     channels = [
         # Channel.C_017,
@@ -42,6 +49,8 @@ def main():
         # Channel.C_025,
         # Channel.C_006
     ]
+
+    experiment_name = experiment_data_filename.split(".")[0]
     for channel in channels:
         print("Working on channel %s" % channel)
         plot_raster_for_monkeys(raw_data, channel=channel,
@@ -103,14 +112,17 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
     plt.show()
 
     ## SAVE PLOTS
-    base_save_dir = "/plots/julie"
+    script_dir = Path(__file__).parent
+    base_save_dir = (script_dir / '..' / '..' / 'plots' / 'julie').resolve()
     if experiment_name is not None:
         save_dir = os.path.join(base_save_dir, experiment_name)
         os.makedirs(save_dir, exist_ok=True)
 
         # Save individual plot
         individual_save_path_png = os.path.join(save_dir, f"{channel.name}_raster.png")
-        individual_save_path_svg = os.path.join(save_dir, f"{channel.name}_raster.svg")
+        filename = os.path.join(save_dir, f"{channel.name}_raster.svg")
+        individual_save_path_svg = filename
+        print("Saved to : ", os.path.abspath(filename))
         # fig.savefig(individual_save_path_png)
         fig.savefig(individual_save_path_svg)
 
