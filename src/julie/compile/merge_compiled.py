@@ -10,23 +10,24 @@ def main():
                  ]
     round_two = ["1696888890257195_231009_180130_round2_1.pk1",
                  "1696891705894032_231009_184826_round2_2.pk1"]
-    round_three = ["1696440834320912_231004_133354.pk1",
-                   "1696441588991973_231004_134629.pk1"]
+    round_three = ["1698435487442556_231027_153807.pk1",
+                   "1698436475645557_231027_155436.pk1"]
     round_four = ["1696367719246571_231003_171519.pk1",
-                  "1696369421224313_231003_174341.pk1"]
+                  "1698436475645557_231027_155436.pk1"]
     round_five = ["1695326404335201_230921_160004.pk1"]
 
-    experiment_data_filenames = round_one
+    experiment_data_filenames = round_three
 
     experiment_names = [experiment_data_filename.split(".")[0] for experiment_data_filename in
                         experiment_data_filenames]
-    file_paths = ["/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename for
+
+    file_paths = ["/home/connorlab/Documents/GitHub/Julie/compiled/julie/%s" % experiment_data_filename for
                   experiment_data_filename in experiment_data_filenames]
 
     data = add_pickled_dataframes(file_paths)
     print("Combined Dataframe number of trials:", len(data))
     combined_filename = "&".join(experiment_names) + ".pk1"
-    save_dir = "/compiled/julie"
+    save_dir = "/home/connorlab/Documents/GitHub/Julie/compiled/julie/"
     save_path = os.path.join(save_dir, combined_filename)
     data.to_pickle(save_path)
 

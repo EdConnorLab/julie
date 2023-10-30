@@ -15,10 +15,10 @@ from clat.util.connection import Connection
 
 def main():
     # Main Parameters
-    compile_data(day=date(2023, 10, 11),
-                 start_time=time(15, 10, 0),
-                 end_time=time(16, 7, 0),
-                 experiment_filename="1697058662909405_231011_171103")
+    compile_data(day=date(2023, 10, 27),
+                 start_time=time(9, 10, 0),
+                 end_time=time(18, 7, 0),
+                 experiment_filename="1698429232853304_231027_135353")
 
 
     # compile_data(day=date(2023, 9, 13),
@@ -50,7 +50,7 @@ def compile_data(day: date = None,
     data = data[data['SpikeTimes'].notna()]
 
     # Save Data
-    save_dir = "/compiled/julie"
+    save_dir = "/home/connorlab/Documents/GitHub/Julie/compiled/julie"
     # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
     save_path = os.path.join(save_dir, filename)
     data.to_pickle(save_path)
@@ -64,7 +64,7 @@ def collect_raw_data_single_file_for_experiment(*, day: date, start_time: time, 
     date_no_hyphens = day_path.replace('-', '')
     conn_xper = Connection(f"{date_no_hyphens}_recording", host="172.30.6.59")
     conn_photo = Connection("photo_metadata", host="172.30.6.59")
-    intan_base_path = "/run/user/1003/gvfs/sftp:host=172.30.6.58/home/connorlab/Documents/IntanData"
+    intan_base_path = "/home/connorlab/Documents/IntanData"
     intan_data_path = os.path.join(intan_base_path, day_path)
     intan_file_path = os.path.join(intan_data_path, experiment_name)
 
