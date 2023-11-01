@@ -15,10 +15,10 @@ from clat.util.connection import Connection
 
 def main():
     # Main Parameters
-    compile_data(day=date(2023, 10, 27),
+    compile_data(day=date(2023, 10, 31),
                  start_time=time(9, 10, 0),
                  end_time=time(18, 7, 0),
-                 experiment_filename="1698429232853304_231027_135353")
+                 experiment_filename="1698785360154833_231031_164920")
 
 
     # compile_data(day=date(2023, 9, 13),
@@ -50,7 +50,7 @@ def compile_data(day: date = None,
     data = data[data['SpikeTimes'].notna()]
 
     # Save Data
-    save_dir = "/home/connorlab/Documents/GitHub/Julie/compiled/julie"
+    save_dir = "/home/connorlab/Documents/GitHub/Julie/compiled"
     # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
     save_path = os.path.join(save_dir, filename)
     data.to_pickle(save_path)

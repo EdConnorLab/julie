@@ -11,20 +11,20 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    experiment_data_filename = "1698429232853304_231027_135353.pk1"
+    experiment_data_filename = "1698785360154833_231031_164920_round3.pk1"
     # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/"
     # Get the current script directory
     script_dir = Path(__file__).parent
 
     # Construct the path from the script directory
-    file_path = (script_dir / '..' / '..' / 'compiled' / 'julie' / experiment_data_filename).resolve()
+    file_path = (script_dir / '..' / '..' / 'compiled' / experiment_data_filename).resolve()
     print(file_path)
     raw_data = read_pickle(file_path)
     #   plot_channel_histograms(raw_data, channel=Channel.C_013)
 
 
     channels = [
-         Channel.C_021,
+         Channel.C_025,
         # Channel.C_002,
         # Channel.C_002,
         # Channel.C_029,
