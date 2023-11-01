@@ -11,11 +11,11 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    date = "2023-10-05"
-    round = "231005_round2"
+    date = "2023-10-30"
+    round = "1698699440778381_231030_165721"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
-    cortana_path = "/home/r2_allen/Documents/JulieIntanData/Cortana"
+    cortana_path = "/home/connorlab/Documents/IntanData"
     round_path = os.path.join(cortana_path, date, round)
     compiled_trials_filepath = os.path.join(round_path, "compiled.pk1")
     experiment_name = os.path.basename(os.path.dirname(compiled_trials_filepath))
@@ -127,7 +127,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
     plt.subplots_adjust(hspace=1.0, wspace=1.0)
     plt.show()
     ## SAVE PLOTS
-    base_save_dir = "/plots/julie"
+    base_save_dir = "/home/connorlab/Documents/GitHub/Julie/plots"
     if experiment_name is not None:
         save_dir = os.path.join(base_save_dir, experiment_name)
         os.makedirs(save_dir, exist_ok=True)
