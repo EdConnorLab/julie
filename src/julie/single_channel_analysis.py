@@ -11,7 +11,7 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    experiment_data_filename = "1698785360154833_231031_164920_round3.pk1"
+    experiment_data_filename = "1699820709714145_231112_152510_round2.pk1"
     # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/"
     # Get the current script directory
     script_dir = Path(__file__).parent
@@ -24,30 +24,7 @@ def main():
 
 
     channels = [
-         Channel.C_025,
-        # Channel.C_002,
-        # Channel.C_002,
-        # Channel.C_029,
-        # Channel.C_007,
-        # Channel.C_013,
-        # Channel.C_018,
-        # Channel.C_024,
-        # Channel.C_003,
-        # Channel.C_028,
-        # Channel.C_012,
-        # Channel.C_022,
-        # Channel.C_011,
-        # Channel.C_020,
-        # Channel.C_010,
-        # Channel.C_021,
-        # Channel.C_006,
-        # Channel.C_010,
-        # Channel.C_025,
-        # Channel.C_026,
-        # Channel.C_023,
-        # Channel.C_006,
-        # Channel.C_025,
-        # Channel.C_006
+        Channel.C_031
     ]
 
     experiment_name = experiment_data_filename.split(".")[0]
@@ -113,7 +90,7 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
 
     ## SAVE PLOTS
     script_dir = Path(__file__).parent
-    base_save_dir = (script_dir / '..' / '..' / 'plots' / 'julie').resolve()
+    base_save_dir = (script_dir / '..' / '..' / 'plots' ).resolve()
     if experiment_name is not None:
         save_dir = os.path.join(base_save_dir, experiment_name)
         os.makedirs(save_dir, exist_ok=True)
