@@ -11,7 +11,7 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    experiment_data_filename = "1701800906523706_231205_132827_round1.pk1"
+    experiment_data_filename = "1702937566118826_231218_171246_round3.pk1"
     # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/"
     # Get the current script directory
     script_dir = Path(__file__).parent
@@ -24,16 +24,14 @@ def main():
 
 
     channels = [
-        Channel.C_015,
-        Channel.C_016,
-        Channel.C_007,
-        Channel.C_024,
+        Channel.C_014,
+        Channel.C_002,
+        Channel.C_020,
         Channel.C_003,
-        Channel.C_028,
-        Channel.C_012,
-        Channel.C_019,
-        Channel.C_004,
-        Channel.C_027
+        Channel.C_026,
+        Channel.C_029,
+        Channel.C_021,
+        Channel.C_015
     ]
 
     experiment_name = experiment_data_filename.split(".")[0]

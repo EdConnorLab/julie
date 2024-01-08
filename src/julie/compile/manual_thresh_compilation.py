@@ -15,10 +15,10 @@ from clat.util.connection import Connection
 
 def main():
     # Main Parameters
-    compile_data(day=date(2023, 12, 7),
+    compile_data(day=date(2023, 12, 18),
                  start_time=time(9, 10, 0),
                  end_time=time(18, 7, 0),
-                 experiment_filename="1701980531598335_231207_152212")
+                 experiment_filename="1702937566118826_231218_171246")
 
     # compile_data(day=date(2023, 9, 13),
     #              start_time=time(17, 0, 0),
