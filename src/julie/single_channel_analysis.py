@@ -39,7 +39,7 @@ def main():
 
 
 def read_pickle(file_path):
-    unpacked_pickle = pd.read_pickle(file_path).reset_index(drop=True)
+    unpacked_pickle = pd.read_pickle(file_path)
     return unpacked_pickle
 
 

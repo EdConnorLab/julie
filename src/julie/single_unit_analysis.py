@@ -12,7 +12,7 @@ matplotlib.use("Qt5Agg")
 
 def main():
     date = "2023-10-30"
-    round = "1698699440778381_231030_165721_round2"
+    round = "1698699440778381_231030_165721"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
     cortana_path = "/home/connorlab/Documents/IntanData"
