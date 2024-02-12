@@ -14,7 +14,6 @@ def main():
     cortana_path = "/home/connorlab/Documents/IntanData"
     round_path = os.path.join(cortana_path, date, round)
     compiled_trials_filepath = os.path.join(round_path, "compiled.pk1")
-    experiment_name = os.path.basename(os.path.dirname(compiled_trials_filepath))
     raw_trial_data = pd.read_pickle(compiled_trials_filepath).reset_index(drop=True)
 
     # TODO: specify which sorting pickle to use and which units to plot, then add them to dataframe
@@ -24,14 +23,13 @@ def main():
     sample_rate = load_intan_rhd_format.read_data(rhd_file_path)["frequency_parameters"]['amplifier_sample_rate']
     sorted_data = calculate_spike_timestamps(raw_trial_data, sorted_spikes, sample_rate)
 
-    # average spike rate for each monkey
+    # average spike rates for each monkey
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
-
+    monkey_specific_spike_rates = []
     for monkey in unique_monkeys:
-        print(monkey)
         monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
-
         unique_channels = set()
+        monkey_specific_spike_rate = []
         for index, row in raw_trial_data.iterrows():
             unique_channels.update(row['SpikeTimes'].keys())
         print(f'Num of Unique Channels: {len(unique_channels)}')
@@ -42,14 +40,23 @@ def main():
             for index, row in monkey_data.iterrows():
                 if channel in row['SpikeTimes']:
                     data = row['SpikeTimes'][channel]
-                if channel in row['SpikeTimes']:
-                    data = row['SpikeTimes'][channel]
                     spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
                 else:
                     print(f"No data for {channel} in row {index}")
 
             avg_spike_rate = sum(spike_rates) / len(spike_rates) if spike_rates else 0
             print(f'the average spike rate is {avg_spike_rate}')
+            channel_spike_rate = {channel: avg_spike_rate}
+            monkey_specific_spike_rate.append(channel_spike_rate)
+        monkey_specific_spike_rates.append(monkey_specific_spike_rate)
+
+    result = {'MonkeyNames': unique_monkeys, 'AvgSpikeRates': monkey_specific_spike_rates}
+    result_df = pd.DataFrame(result)
+
+    print(result_df)
+
+
+
 
     # spike rate for each picture
     # for index, row in raw_trial_data.iterrows():
