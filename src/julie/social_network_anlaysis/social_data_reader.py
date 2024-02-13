@@ -5,8 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 current_dir = os.getcwd()
-raw_data_file_name = 'RawData_Organized_on20240208.xlsx'
-file_path = Path(current_dir).parent / 'resources' / raw_data_file_name
+# raw_data_file_name = 'RawData_Organized_on20240208.xlsx'
+raw_data_file_name = 'ZombiesFinalRawData.xlsx'
+file_path = '/Users/julie/General/LocalDocuments/GitHub/Julie/resources/ZombiesFinalRawData.xlsx'
+# file_path = Path(current_dir).parent / 'resources' / raw_data_file_name
 xl = pd.ExcelFile(file_path)
 sheet_names = xl.sheet_names
 # print(sheet_names)
@@ -66,30 +68,3 @@ print(filtered_result)
 agonistic = df[(df['Behavior Abbrev'] == 'AOA') | (df['Behavior Abbrev'] == 'IAG')]
 agonistic = agonistic[['Focal Name', 'Social Modifier']]
 print(agonistic['Social Modifier'].unique())
-
-
-import igraph as ig
-
-# Read the agonism data for April and August
-edge_list = [(row['Focal Name'], row['Social Modifier']) for _, row in agonistic.iterrows()]
-
-# Create a directed graph from the edge list
-agonism = ig.Graph.TupleList(edge_list, directed=True)
-
-# Calculate degrees
-deg = agonism.degree(mode="all")
-
-# Plot the agonism network
-ig.plot(agonism, target = 'one.pdf', layout=agonism.layout_kamada_kawai())
-
-# Simplify the agonism network
-agonism_simple = agonism.simplify()
-
-# Plot the simplified agonism network
-ig.plot(agonism_simple, target = 'two.pdf', vertex_size=[d * 1.5 for d in deg], layout=agonism_simple.layout_kamada_kawai())
-
-# # Read the new agonistic graph
-# am = ig.Graph.Read_Adjacency("ZombiesAgonismMatrix.csv", mode="directed", attribute="weight")
-#
-# # Plot the new agonistic graph
-# ig.plot(am, edge_width=[e["weight"] for e in am.es], edge_curved=[-0.2 + i * 0.2 / am.ecount() for i in range(am.ecount())], layout=am.layout_kamada_kawai())
