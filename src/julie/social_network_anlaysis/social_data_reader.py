@@ -1,42 +1,19 @@
 import os
 from pathlib import Path
-
-import networkx as nx
 import pandas as pd
+import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 def main():
     current_dir = os.getcwd()
     raw_data_file_name = 'ZombiesFinalRawData.xlsx'
     # file_path = '/Users/julie/General/LocalDocuments/GitHub/Julie/resources/ZombiesFinalRawData.xlsx'
     file_path = Path(current_dir).parent.parent.parent / 'resources' / raw_data_file_name
-    xl = pd.ExcelFile(file_path)
-    sheet_names = xl.sheet_names
-    # print(sheet_names)
-    last_sheet = sheet_names[-1]
-    df = xl.parse(last_sheet)
-    # print(df.columns)
+    df = read_social_raw_data(file_path)
+    extracted_df = clean_social_raw_data(df)
 
-    # Rename columns for convenience
-    df.rename(columns={'All Occurrence Value': 'Behavior'}, inplace=True)
-    df.rename(columns={'All Occurrence Behavior Social Modifier': 'Social Modifier'}, inplace=True)
-    df.rename(columns={'All Occurrence Space Use Coordinate XY': 'Space Use'}, inplace=True)
-
-    # Rename the last column to Time
-    df.columns = [*df.columns[:-1], 'Time']
-
-    # Combine Year, Month, Day columns into VideoDate
-    df['VideoDate'] = df.iloc[:, -4].astype(str).str.zfill(2) + df.iloc[:, -3].astype(str).str.zfill(2) + df.iloc[:,
-                                                                                                          -2].astype(
-        str).str.zfill(2)
-    # print(df.columns)
-
-    extracted_df = df[['Observer', 'Focal Name', 'Behavior', 'Social Modifier', 'Space Use', 'VideoDate', 'Time']]
-
-    # print(extracted_df['VideoDate'].unique())
-    print(f"{extracted_df['VideoDate'].nunique()} days of recording")
+    # Validate
 
     # Check number of monkeys recorded for each day
     try:
@@ -51,10 +28,11 @@ def main():
     ''' GET ALL AGONISTIC BEHAVIORS '''
     agonistic = extract_pairwise_interactions(df, 'agonistic')
     edge_weights = generate_weights_from_pairwise_interactions(agonistic)
-    print(edge_weights)
+
+    edge_weights.to_csv('edge_weights.csv', index=False)
 
     G = nx.from_pandas_edgelist(edge_weights, source='Focal Name', target='Social Modifier', edge_attr='weight',
-                                create_using=nx.DiGraph)
+                                    create_using=nx.DiGraph)
     adj_matrix = nx.to_numpy_array(G, nodelist=sorted(G.nodes()))
     normalized_matrix = adj_matrix / np.sum(adj_matrix)
     print(adj_matrix)
@@ -69,6 +47,35 @@ def main():
     nx.draw(G, pos, with_labels=True, node_size=700, font_size=10, arrowsize=15, width=weights,
             edge_color='darkblue')
     plt.show()
+def read_social_raw_data(filepath):
+    xl = pd.ExcelFile(filepath)
+    sheet_names = xl.sheet_names
+    # print(sheet_names)
+    last_sheet = sheet_names[-1]
+    df = xl.parse(last_sheet)
+    # print(df.columns)
+    return df
+
+def clean_social_raw_data(df):
+    # Rename columns for convenience
+    df.rename(columns={'All Occurrence Value': 'Behavior'}, inplace=True)
+    df.rename(columns={'All Occurrence Behavior Social Modifier': 'Social Modifier'}, inplace=True)
+    df.rename(columns={'All Occurrence Space Use Coordinate XY': 'Space Use'}, inplace=True)
+
+    # Rename the last column to Time
+    df.columns = [*df.columns[:-1], 'Time']
+
+    # Combine Year, Month, Day columns into VideoDate
+    df['VideoDate'] = (df.iloc[:, -4].astype(str).str.zfill(2) + df.iloc[:, -3].astype(str).str.zfill(2)
+                       + df.iloc[:,-2].astype(str).str.zfill(2))
+    # print(df.columns)
+
+    extracted_df = df[['Observer', 'Focal Name', 'Behavior', 'Social Modifier', 'Space Use', 'VideoDate', 'Time']]
+
+    # print(extracted_df['VideoDate'].unique())
+    print(f"{extracted_df['VideoDate'].nunique()} days of recording")
+
+
 
 def generate_weights_from_pairwise_interactions(interaction_df):
     # Splitting values with comma and creating new rows
@@ -102,7 +109,7 @@ def extract_pairwise_interactions(df, social_interaction_type):
 def validate_number_of_monkeys(df):
     # For dates before 06/13/2022, 10 monkeys
     # after 06/13/2022, 8 monkeys
-    # excpetion: 05/19/2022, 8 monkeys
+    # exception: 05/19/2022, 8 monkeys
     grouped = df.groupby('VideoDate')['Focal Name'].agg(['nunique', 'unique']).reset_index()
 
     for index, row in grouped.iterrows():
