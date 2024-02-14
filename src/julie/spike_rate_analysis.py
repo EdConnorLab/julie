@@ -18,28 +18,7 @@ def main():
     raw_trial_data = read_raw_trial_data(round_path)
 
     avg_spike_rate = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
-
-    # Zombies
-    G = nx.DiGraph()
-    zombies = [Monkey.Z_M1.value, Monkey.Z_F1.value, Monkey.Z_F2.value,
-               Monkey.Z_F3.value, Monkey.Z_F4.value, Monkey.Z_F5.value,
-               Monkey.Z_F6.value, Monkey.Z_F7.value, Monkey.Z_J1.value, Monkey.Z_J2.value]
-    G.add_nodes_from(zombies)
-
-    random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]
-    norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
-    set_node_attributes_with_default(G, norm_values, 'spike_rate', default_value=0)
-    print(G.nodes(data=True))
-
-    # Define a colormap and normalize the values
-    colormap = plt.cm.get_cmap('YlOrBr')
-    attribute = nx.get_node_attributes(G, 'spike_rate')
-
-    # Map the normalized values to colors using the colormap
-    node_colors = [colormap(attribute[node]) for node in G.nodes()]
-    pos = nx.spring_layout(G)  # Position nodes using the spring layout
-    nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=800)
-    plt.show()
+    print(f'Average spike rate: {avg_spike_rate}')
 
     # spike rate for each picture
     # for index, row in raw_trial_data.iterrows():
