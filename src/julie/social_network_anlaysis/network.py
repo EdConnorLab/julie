@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import social_data_reader
+from monkeyids import Monkey
 
-def plot_directed_social_network(edge_weights):
+
+def create_digraph_with_edge_weights(edge_weights):
     G = nx.from_pandas_edgelist(edge_weights, source='Focal Name', target='Social Modifier', edge_attr='weight',
                                     create_using=nx.DiGraph)
     adj_matrix = nx.to_numpy_array(G, nodelist=sorted(G.nodes()))
@@ -14,17 +16,15 @@ def plot_directed_social_network(edge_weights):
     print(G.edges(data=True))
     # Extract weights for each edge
     weights = [d['weight'] for _, _, d in G.edges(data=True)]
+    return G, adj_matrix, weights
 
-    # Visualize the graph with a different layout and edge color
-    plt.figure(figsize=(10, 8))
-    pos = nx.spring_layout(G, seed=42)  # positions for all nodes, seed for reproducibility
-    nx.draw(G, pos, with_labels=True, node_size=700, font_size=10, arrowsize=15, width=weights,
-            edge_color='darkblue')
-    plt.show()
-
-def plot_undirected_social_network(edge_weights):
+def create_graph_with_edge_weights(edge_weights):
     pass
 
-
-def main():
-    pass
+def create_digraph_for_zombies():
+    G = nx.DiGraph()
+    zombies = [Monkey.Z_M1.value, Monkey.Z_F1.value, Monkey.Z_F2.value,
+               Monkey.Z_F3.value, Monkey.Z_F4.value, Monkey.Z_F5.value,
+               Monkey.Z_F6.value, Monkey.Z_F7.value, Monkey.Z_J1.value, Monkey.Z_J2.value]
+    G.add_nodes_from(zombies)
+    return G
