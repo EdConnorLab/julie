@@ -130,5 +130,6 @@ def generate_weights_from_pairwise_interactions(interaction_df):
     edge_weights = pd.DataFrame(new_rows).groupby(['Focal Name', 'Social Modifier']).size().reset_index(name='weight')
     return edge_weights
 
+
 if __name__ == '__main__':
     read_social_data_and_validate()

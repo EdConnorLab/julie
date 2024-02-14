@@ -6,10 +6,8 @@ from matplotlib import pyplot as plt
 
 from julie.single_channel_analysis import read_pickle, calculate_spike_rate
 from julie.single_unit_analysis import calculate_spike_timestamps
-from julie.social_network_anlaysis.monkeyids import Monkey
 
-
-def main():
+def compute_average_spike_rates():
     date = "2023-10-30"
     round = "1698699440778381_231030_165721"
     cortana_path = "/home/connorlab/Documents/IntanData"
@@ -17,8 +15,9 @@ def main():
 
     raw_trial_data = read_raw_trial_data(round_path)
 
-    avg_spike_rate = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
-    print(f'Average spike rate: {avg_spike_rate}')
+    avg_spike_rates = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
+    print(f'Average spike rate: {avg_spike_rates}')
+    return avg_spike_rates
 
     # spike rate for each picture
     # for index, row in raw_trial_data.iterrows():
@@ -81,4 +80,4 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
 
 
 if __name__ == '__main__':
-    main()
+    avg_spike_rates = compute_average_spike_rates()
