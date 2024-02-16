@@ -99,36 +99,64 @@ def validate_number_of_interval_datapoints(social_data):
         raise ValueError(f'Monkey specific interval datapoint count: {filtered_result}')
 
 
+
+
 def extract_pairwise_interactions(social_data, social_interaction_type):
     social_data['Behavior Abbrev'] = social_data['Behavior'].str[:4].str.replace(' ', '')
+    social_data = social_data[['Focal Name', 'Social Modifier', 'Behavior Abbrev']]
 
     if social_interaction_type.lower() == 'agonistic':
         subset = social_data[(social_data['Behavior Abbrev'] == 'AOA') | (social_data['Behavior Abbrev'] == 'IAG')]
-    elif social_interaction_type.lower() == 'affiliative':
-        subset = social_data[(social_data['Behavior Abbrev'] == 'IAF')]
     elif social_interaction_type.lower() == 'submissive':
         subset = social_data[(social_data['Behavior Abbrev'] == 'AOS') | (social_data['Behavior Abbrev'] == 'ISU')]
+    elif social_interaction_type.lower() == 'affiliative':
+        subset = social_data[(social_data['Behavior Abbrev'] == 'IAF')]
     else:
-        raise ValueError("Invalid social interaction type. Please provide 'agonistic', 'affiliative', or 'submissive'.")
-    subset = subset[['Focal Name', 'Social Modifier']]
+        raise ValueError("Invalid social interaction type. Please provide 'affiliative', 'submissive', or 'agonistic'.")
+
     subset = subset.dropna(subset=['Social Modifier'])  # remove all nan
+    subset = expand_rows_on_comma(subset)
+    subset_df = pd.DataFrame(subset)
+    interaction_df = subset_df[['Focal Name', 'Social Modifier', 'Behavior Abbrev']]
 
-    return subset
+    return interaction_df
 
-def generate_weights_from_pairwise_interactions(interaction_df):
+def expand_rows_on_comma(df):
     # Splitting values with comma and creating new rows
     new_rows = []
-    for index, row in interaction_df.iterrows():
+    for index, row in df.iterrows():
         if ',' in row['Social Modifier']:
             modifiers = row['Social Modifier'].split(',')
             for modifier in modifiers:
-                new_rows.append({col: row[col] for col in interaction_df.columns})
+                new_rows.append({col: row[col] for col in df.columns})
                 new_rows[-1]['Social Modifier'] = modifier
         else:
-            new_rows.append({col: row[col] for col in interaction_df.columns})
+            new_rows.append({col: row[col] for col in df.columns})
+    return new_rows
 
-    edge_weights = pd.DataFrame(new_rows).groupby(['Focal Name', 'Social Modifier']).size().reset_index(name='weight')
-    return edge_weights
+def generate_edgelist_from_pairwise_interactions(interaction_df):
+
+    if (interaction_df['Behavior Abbrev'].isin(['ISU', 'AOS'])).all():
+        # Switch actor and receiver for the submissive behaviors
+        temp = interaction_df['Focal Name'].copy()
+        interaction_df['Focal Name'] = interaction_df['Social Modifier']
+        interaction_df['Social Modifier'] = temp
+
+    interaction_df = interaction_df[['Focal Name', 'Social Modifier']]
+    edgelist = interaction_df.groupby(['Focal Name', 'Social Modifier']).size().reset_index(name='weight')
+    print(f'edge list {edgelist}')
+
+    return edgelist
+
+
+def combine_edgelists(edgelist1, edgelist2):
+    # Concatenate the two edge lists
+    combined_edgelist = pd.concat([edgelist1, edgelist2])
+    # Group by 'Focal Name' and 'Social Modifier' and sum the weights
+    combined_edgelist = combined_edgelist.groupby(['Focal Name', 'Social Modifier']).sum().reset_index()
+    return combined_edgelist
+
+
 
 
 if __name__ == '__main__':

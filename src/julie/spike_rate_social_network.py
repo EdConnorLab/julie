@@ -3,9 +3,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from pathlib import Path
-from julie.social_network_anlaysis.network import create_digraph_with_edge_weights
+from julie.social_network_anlaysis.network import create_digraph_with_edge_weights, create_graph_with_edge_weights
 from julie.social_network_anlaysis.social_data_reader import read_raw_social_data, extract_pairwise_interactions, \
-    generate_weights_from_pairwise_interactions, clean_raw_social_data
+    generate_edgelist_from_pairwise_interactions, clean_raw_social_data, combine_edgelists
 from julie.spike_rate_analysis import read_raw_trial_data, compute_spike_rates_per_channel_per_monkey, \
     set_node_attributes_with_default
 
@@ -17,7 +17,13 @@ def main():
     raw_social_data = read_raw_social_data(file_path)
     social_data = clean_raw_social_data(raw_social_data)
     agonistic = extract_pairwise_interactions(social_data, 'agonistic')
-    edge_weights = generate_weights_from_pairwise_interactions(agonistic)
+    submissive = extract_pairwise_interactions(social_data, 'submissive')
+    edgelist_agonistic = generate_edgelist_from_pairwise_interactions(agonistic)
+    edgelist_submissive = generate_edgelist_from_pairwise_interactions(submissive)
+    combined_edgelist = combine_edgelists(edgelist_agonistic, edgelist_submissive)
+
+    affiliative= extract_pairwise_interactions(social_data, 'affiliative')
+    edgelist_affiliative = generate_edgelist_from_pairwise_interactions(affiliative)
 
     date = "2023-10-30"
     round = "1698699440778381_231030_165721"
@@ -28,16 +34,17 @@ def main():
     random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]
     norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
 
-    G, adj_matrix, weights = create_digraph_with_edge_weights(edge_weights)
+    # G, adj_matrix, weights = create_digraph_with_edge_weights(combined_edgelist)
+    G, adj_matrix, weights = create_graph_with_edge_weights(edgelist_affiliative)
     set_node_attributes_with_default(G, norm_values, 'spike_rate', default_value=0)
 
     colormap = plt.cm.get_cmap('YlOrBr')
     attribute = nx.get_node_attributes(G, 'spike_rate')
     node_colors = [colormap(attribute[node]) for node in G.nodes()]
-
+    # print(f'degree centrality {nx.degree_centrality(G)}')
     # Visualize the graph
     plt.figure(figsize=(12, 10))
-    pos = nx.spring_layout(G, seed =42)  # Position nodes using the spring layout
+    pos = nx.spring_layout(G)  # Position nodes using the spring layout
     nx.draw(G, pos, with_labels=True, width=weights, font_size=7, node_color=node_colors, node_size=1500)
     plt.show()
 
