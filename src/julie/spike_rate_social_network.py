@@ -3,6 +3,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from pathlib import Path
+
+import pandas as pd
+
 from julie.social_network_anlaysis.network import create_digraph_with_edge_weights, create_graph_with_edge_weights
 from julie.social_network_anlaysis.social_data_reader import read_raw_social_data, extract_pairwise_interactions, \
     generate_edgelist_from_pairwise_interactions, clean_raw_social_data, combine_edgelists
@@ -34,14 +37,17 @@ def main():
     random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]
     norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
 
-    # G, adj_matrix, weights = create_digraph_with_edge_weights(combined_edgelist)
-    G, adj_matrix, weights = create_graph_with_edge_weights(edgelist_affiliative)
+    G, adj_matrix, weights = create_digraph_with_edge_weights(combined_edgelist)
+    #G, adj_matrix, weights = create_graph_with_edge_weights(edgelist_affiliative)
     set_node_attributes_with_default(G, norm_values, 'spike_rate', default_value=0)
 
     colormap = plt.cm.get_cmap('YlOrBr')
     attribute = nx.get_node_attributes(G, 'spike_rate')
     node_colors = [colormap(attribute[node]) for node in G.nodes()]
-    # print(f'degree centrality {nx.degree_centrality(G)}')
+    print(f'degree centrality {nx.degree_centrality(G)}')
+    print(f'betweenness centrality {nx.betweenness_centrality(G)}')
+    print(f'eigenvector centrality {nx.eigenvector_centrality(G)}')
+
     # Visualize the graph
     plt.figure(figsize=(12, 10))
     pos = nx.spring_layout(G)  # Position nodes using the spring layout
