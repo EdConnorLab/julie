@@ -37,8 +37,8 @@ def main():
     random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]
     norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
 
-    G, adj_matrix, weights = create_digraph_with_edge_weights(combined_edgelist)
-    #G, adj_matrix, weights = create_graph_with_edge_weights(edgelist_affiliative)
+    #G, adj_matrix, weights = create_digraph_with_edge_weights(combined_edgelist)
+    G, adj_matrix, weights = create_graph_with_edge_weights(edgelist_affiliative)
     set_node_attributes_with_default(G, norm_values, 'spike_rate', default_value=0)
 
     colormap = plt.cm.get_cmap('YlOrBr')

@@ -21,6 +21,7 @@ def read_social_data_and_validate():
 
     # Check number of interval datapoints for each day
     validate_number_of_interval_datapoints(social_data)
+    return social_data
 
 
 def read_raw_social_data(filepath):
@@ -76,7 +77,7 @@ def validate_number_of_monkeys(social_data):
             raise ValueError(
                 f"Unexpected number of monkeys ({count}) observed on {video_date}. Expected: {expected_count} monkeys.")
         else:
-            print("Validation passed! Valid number of monkeys for all dates :)")
+            print(f"Validation passed! Valid number of monkeys for {video_date}")
 
 def validate_number_of_interval_datapoints(social_data):
     if 'Behavior Abbrev' not in social_data.columns:
@@ -99,7 +100,10 @@ def validate_number_of_interval_datapoints(social_data):
         raise ValueError(f'Monkey specific interval datapoint count: {filtered_result}')
 
 
-
+def extract_grooming_interactions(social_data):
+    grooming = social_data[social_data['Behavior'].str.contains('groom')]
+    grooming = grooming[['Focal Name', 'Social Modifier', 'Behavior']]
+    print(grooming)
 
 def extract_pairwise_interactions(social_data, social_interaction_type):
     social_data['Behavior Abbrev'] = social_data['Behavior'].str[:4].str.replace(' ', '')
@@ -160,4 +164,6 @@ def combine_edgelists(edgelist1, edgelist2):
 
 
 if __name__ == '__main__':
-    read_social_data_and_validate()
+    social_data = read_social_data_and_validate()
+    extract_grooming_interactions(social_data)
+
