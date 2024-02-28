@@ -39,27 +39,33 @@ print(sorted)
 # Single dimension analysis
 
 # actor
-# for zombie in zombies:
-#     actor_specific = sorted[sorted['Focal Name'] == zombie].copy()
-#     actor_specific['Spike Rate'] = actor_specific['Social Modifier'].map(norm_values)
-#
-#     # 81G should be NaN in spike rate so fill it with 0s
-#     actor_specific['Spike Rate'].fillna(0, inplace=True)
-#     print(actor_specific)
-#     plt.plot(actor_specific['weight'], actor_specific['Spike Rate'])
-#     plt.xlabel('Frequency of Affiliative Behavior')
-#     plt.ylabel('Firing Rate')
-#     plt.show()
+for zombie in zombies:
+    actor_specific = sorted[sorted['Focal Name'] == zombie].copy()
+    actor_specific['Spike Rate'] = actor_specific['Social Modifier'].map(norm_values)
+
+    # Remove 81G spike rate since it's nan
+    actor_specific_cleaned = actor_specific.dropna(subset=['Spike Rate'])
+
+    plt.plot(actor_specific_cleaned['weight'], actor_specific_cleaned['Spike Rate'], marker='o', linestyle='None')
+    for index, row in actor_specific_cleaned.iterrows():
+        plt.text(row['weight'], row['Spike Rate'], row['Social Modifier'], fontsize=12, ha='right', va='bottom')
+    plt.xlabel('Frequency of Affiliative Behavior')
+    plt.ylabel('Firing Rate')
+    plt.title(f'affiliative behavior from {zombie}')
+    plt.show()
 
 # receiver
 for zombie in zombies:
     receiver_specific = sorted[sorted['Social Modifier'] == zombie].copy()
     receiver_specific['Spike Rate'] = receiver_specific['Focal Name'].map(norm_values)
 
-    # 81G should be NaN in spike rate so fill it with 0s
-    receiver_specific['Spike Rate'].fillna(0, inplace=True)
-    print(receiver_specific)
-    plt.plot(receiver_specific['weight'], receiver_specific['Spike Rate'])
+    # Remove 81G spike rate since it's nan
+    receiver_specific_cleaned = receiver_specific.dropna(subset=['Spike Rate'])
+
+    plt.plot(receiver_specific_cleaned['weight'], receiver_specific_cleaned['Spike Rate'], marker='o', linestyle='None')
+    for index, row in receiver_specific_cleaned.iterrows():
+       plt.text(row['weight'], row['Spike Rate'], row['Focal Name'], fontsize=12, ha='right', va='bottom')
     plt.xlabel('Frequency of Affiliative Behavior')
     plt.ylabel('Firing Rate')
+    plt.title(f'affiliative behavior to {zombie}')
     plt.show()
