@@ -1,22 +1,35 @@
 import os
+from pathlib import Path
+
 import pandas as pd
 import networkx as nx
 from clat.intan.rhd import load_intan_rhd_format
+from clat.intan.channels import Channel
 from matplotlib import pyplot as plt
 
-from julie.single_channel_analysis import read_pickle, calculate_spike_rate
+from julie.single_channel_analysis import read_pickle, calculate_spike_rate, extract_target_channel_data
 from julie.single_unit_analysis import calculate_spike_timestamps
 
-def compute_average_spike_rates():
-    date = "2023-10-30"
-    round = "1698699440778381_231030_165721"
+def compute_average_spike_rates(date, round):
     cortana_path = "/home/connorlab/Documents/IntanData"
+    dir_path = Path(cortana_path) / date
     round_path = os.path.join(cortana_path, date, round)
-
-    raw_trial_data = read_raw_trial_data(round_path)
+    sorted = dir_path / 'sorted_spikes.pkl'
+    if sorted.exists():
+        raw_trial_data = read_raw_trial_data(round_path)
+    else:
+        script_dir = Path(__file__).parent
+        compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()
+        matching_files = list(compiled_dir.glob(f"*{round}*"))
+        if matching_files:
+            print("HELLOOOOOOOOOOOOOOO")
+            file_path = matching_files[0]
+            raw_trial_data = read_pickle(file_path)
+        else:
+            print(f"No files found containing '{round}' in {compiled_dir}")
 
     avg_spike_rates = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
-    print(f'Average spike rate: {avg_spike_rates}')
+
     return avg_spike_rates
 
     # spike rate for each picture
@@ -69,7 +82,7 @@ def compute_spike_rates_per_channel_per_monkey(raw_trial_data):
 
         # Add monkey-specific spike rates to the DataFrame
         avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
-
+    print('---------------- Average spike rate by unit ---------------')
     print(avg_spike_rate_by_unit)
     return avg_spike_rate_by_unit
 
@@ -80,4 +93,7 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
 
 
 if __name__ == '__main__':
-    avg_spike_rates = compute_average_spike_rates()
+    date = "2023-10-30"
+    round = "1698696277254800_231030_160438"
+    # round = "1698699440778381_231030_165721"
+    avg_spike_rates = compute_average_spike_rates(date, round)
