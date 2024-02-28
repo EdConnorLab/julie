@@ -52,6 +52,13 @@ def clean_raw_social_data(raw_social_data):
 
     social_data = raw_social_data[
         ['Observer', 'Focal Name', 'Behavior', 'Social Modifier', 'Space Use', 'VideoDate', 'Time']].copy()
+    # Remove parentheses and extract monkey ids
+    social_data['Social Modifier'] = social_data['Social Modifier'].str.replace(r'^.*?\((.*?)\).*|^(.+)$',
+                                                                      lambda m: m.group(1) if m.group(
+                                                                          1) is not None else m.group(2), regex=True)
+    social_data['Focal Name'] = social_data['Focal Name'].str.replace(r'^.*?\((.*?)\).*|^(.+)$',
+                                                                      lambda m: m.group(1) if m.group(
+                                                                          1) is not None else m.group(2), regex=True)
     print(social_data)
     return social_data
 

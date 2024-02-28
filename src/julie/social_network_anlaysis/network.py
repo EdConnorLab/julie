@@ -8,7 +8,6 @@ from monkeyids import Monkey
 
 def create_digraph_with_edge_weights(edge_weights):
     normalized_edge_weights = normalize_weights_min_max(edge_weights)
-    print('hihihi')
     print(normalized_edge_weights)
     G = nx.from_pandas_edgelist(normalized_edge_weights, source='Focal Name', target='Social Modifier', edge_attr='weight',
                                 create_using=nx.DiGraph)

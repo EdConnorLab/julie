@@ -49,4 +49,3 @@ class Monkey(Enum):
     S_J4 = "26J"
     S_J5 = "36J"
     S_J6 = "40J"
-
