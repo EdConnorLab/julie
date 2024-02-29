@@ -22,7 +22,6 @@ def compute_average_spike_rates(date, round):
         compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()
         matching_files = list(compiled_dir.glob(f"*{round}*"))
         if matching_files:
-            print("HELLOOOOOOOOOOOOOOO")
             file_path = matching_files[0]
             raw_trial_data = read_pickle(file_path)
         else:
