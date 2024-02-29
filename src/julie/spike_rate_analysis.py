@@ -15,7 +15,16 @@ def compute_average_spike_rates(date, round):
     round_path = Path(os.path.join(cortana_path, date, round))
     sorted = round_path / 'sorted_spikes.pkl'
     if sorted.exists():
-        raw_trial_data = read_sorted_data(round_path)
+        sorted_data = read_sorted_data(round_path)
+        script_dir = Path(__file__).parent
+        compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()
+        matching_files = list(compiled_dir.glob(f"*{round}*"))
+        if matching_files:
+            file_path = matching_files[0]
+            raw_trial_data = read_pickle(file_path)
+        else:
+            print(f"No files found containing '{round}' in {compiled_dir}")
+
     else:
         script_dir = Path(__file__).parent
         compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()
@@ -81,8 +90,8 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
 
 if __name__ == '__main__':
     date = "2023-10-30"
-    round = "1698696277254800_231030_160438"
-    # round = "1698699440778381_231030_165721"
+    # round = "1698696277254800_231030_160438"
+    round = "1698699440778381_231030_165721"
     avg_spike_rates = compute_average_spike_rates(date, round)
 
 
