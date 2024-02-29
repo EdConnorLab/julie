@@ -27,7 +27,6 @@ def compute_average_spike_rates(date, round):
             print(f"No files found containing '{round}' in {compiled_dir}")
 
     avg_spike_rates = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
-#         print(f'For unit {unit}, the spike rate is {spike_rate}')
 
     return avg_spike_rates
 
@@ -69,6 +68,7 @@ def compute_spike_rates_per_channel_per_monkey(raw_trial_data):
 
         # Add monkey-specific spike rates to the DataFrame
         avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
+
     print('---------------- Average spike rate by unit ---------------')
     print(avg_spike_rate_by_unit)
     return avg_spike_rate_by_unit
@@ -81,8 +81,8 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
 
 if __name__ == '__main__':
     date = "2023-10-30"
-    # round = "1698696277254800_231030_160438"
-    round = "1698699440778381_231030_165721"
+    round = "1698696277254800_231030_160438"
+    # round = "1698699440778381_231030_165721"
     avg_spike_rates = compute_average_spike_rates(date, round)
 
 
