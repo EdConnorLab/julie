@@ -66,9 +66,9 @@ def calculate_spike_timestamps(df: pd.DataFrame, spike_indices_by_unit_by_channe
                 spikes_tstamps_by_unit[new_unit_name] = valid_spike_times
 
         return spikes_tstamps_by_unit
-
-    df['SpikeTimes'] = df['EpochStartStop'].apply(single_row_calculation)
-    return df
+    new_df = df.copy(deep=True)
+    new_df['SpikeTimes'] = new_df['EpochStartStop'].apply(single_row_calculation)
+    return new_df
 
 
 def extract_target_unit_data(unit, data):

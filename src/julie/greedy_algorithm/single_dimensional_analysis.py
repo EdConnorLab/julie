@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 from monkeyids import Monkey as M
 from pathlib import Path
 
-from social_data_reader import read_raw_social_data, clean_raw_social_data, extract_pairwise_interactions, \
+from social_data_reader.social_data_reader import read_raw_social_data, clean_raw_social_data, extract_pairwise_interactions, \
     generate_edgelist_from_pairwise_interactions, combine_edgelists
-from spike_rate_analysis import read_raw_trial_data, compute_spike_rates_per_channel_per_monkey
+from spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey
 
 
 current_dir = os.getcwd()
@@ -22,7 +22,7 @@ date = "2023-10-30"
 round = "1698699440778381_231030_165721"
 cortana_path = "/home/connorlab/Documents/IntanData"
 round_path = os.path.join(cortana_path, date, round)
-raw_trial_data = read_raw_trial_data(round_path)
+raw_trial_data = read_sorted_data(round_path)
 avg_spike_rate = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
 print(f'avg_spike_rate: {avg_spike_rate}')
 random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]

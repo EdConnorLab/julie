@@ -9,7 +9,7 @@ import pandas as pd
 from julie.social_network_anlaysis.network import create_digraph_with_edge_weights, create_graph_with_edge_weights
 from julie.social_network_anlaysis.social_data_reader import read_raw_social_data, extract_pairwise_interactions, \
     generate_edgelist_from_pairwise_interactions, clean_raw_social_data, combine_edgelists
-from julie.spike_rate_analysis import read_raw_trial_data, compute_spike_rates_per_channel_per_monkey, \
+from julie.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey, \
     set_node_attributes_with_default
 
 
@@ -32,7 +32,7 @@ def main():
     round = "1698699440778381_231030_165721"
     cortana_path = "/home/connorlab/Documents/IntanData"
     round_path = os.path.join(cortana_path, date, round)
-    raw_trial_data = read_raw_trial_data(round_path)
+    raw_trial_data = read_sorted_data(round_path)
     avg_spike_rate = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
     random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]
     norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
