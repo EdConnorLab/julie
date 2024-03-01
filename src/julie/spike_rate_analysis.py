@@ -11,7 +11,7 @@ from julie.single_channel_analysis import read_pickle, calculate_spike_rate, ext
 from julie.single_unit_analysis import calculate_spike_timestamps
 
 def compute_average_spike_rates(date, round):
-    cortana_path = "/home/connorlab/Documents/IntanData"
+    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
     round_path = Path(os.path.join(cortana_path, date, round))
     script_dir = Path(__file__).parent
     compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()

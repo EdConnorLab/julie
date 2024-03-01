@@ -15,7 +15,7 @@ def main():
     round = "1698699440778381_231030_165721"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
-    cortana_path = "/home/connorlab/Documents/IntanData"
+    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
     round_path = os.path.join(cortana_path, date, round)
     compiled_trials_filepath = os.path.join(round_path, "compiled.pk1")
     experiment_name = os.path.basename(os.path.dirname(compiled_trials_filepath))

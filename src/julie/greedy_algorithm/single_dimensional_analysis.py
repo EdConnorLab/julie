@@ -20,7 +20,7 @@ edgelist_affiliative = generate_edgelist_from_pairwise_interactions(affiliative)
 print(f'edgelist: {edgelist_affiliative}')
 date = "2023-10-30"
 round = "1698699440778381_231030_165721"
-cortana_path = "/home/connorlab/Documents/IntanData"
+cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
 round_path = os.path.join(cortana_path, date, round)
 raw_trial_data = read_sorted_data(round_path)
 avg_spike_rate = compute_spike_rates_per_channel_per_monkey(raw_trial_data)

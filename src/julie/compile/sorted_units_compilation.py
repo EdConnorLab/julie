@@ -25,7 +25,7 @@ def compile_data(*, experiment_name: str, day: date):
     date_no_hyphens = date_path.replace('-', '')
     conn_xper = Connection(f"{date_no_hyphens}_recording", host="172.30.6.59")
     conn_photo = Connection("photo_metadata", host="172.30.6.59")
-    intan_base_path = "/home/connorlab/Documents/IntanData"
+    intan_base_path = "/home/connorlab/Documents/IntanData/Cortana"
     intan_day_path = os.path.join(intan_base_path, date_path)
     intan_file_path = os.path.join(intan_day_path, experiment_name)
     digital_in_path = os.path.join(intan_file_path, "digitalin.dat")

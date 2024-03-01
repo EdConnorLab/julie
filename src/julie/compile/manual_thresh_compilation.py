@@ -63,7 +63,7 @@ def collect_raw_data_single_file_for_experiment(*, day: date, start_time: time, 
     date_no_hyphens = day_path.replace('-', '')
     conn_xper = Connection(f"{date_no_hyphens}_recording", host="172.30.6.59")
     conn_photo = Connection("photo_metadata", host="172.30.6.59")
-    intan_base_path = "/home/connorlab/Documents/IntanData"
+    intan_base_path = "/home/connorlab/Documents/IntanData/Cortana"
     intan_data_path = os.path.join(intan_base_path, day_path)
     intan_file_path = os.path.join(intan_data_path, experiment_name)
 
