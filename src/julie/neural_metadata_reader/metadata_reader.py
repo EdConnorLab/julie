@@ -29,6 +29,6 @@ metadata = pd.merge(channels, locations, on=['Date', 'Round No.'])
 print(metadata.columns)
 ER_data = metadata[metadata['Location'] == 'ER']
 AMG_data = metadata[metadata['Location'] == 'Amygdala']
-print(ER_data)
-print(AMG_data)
+print("JH 12: \n", ER_data)
+print("JH 32192: \n", AMG_data)
 get_valid_channels("10-10-2023", "1696957915096002_231010_131155")
