@@ -13,31 +13,34 @@ from julie.single_unit_analysis import calculate_spike_timestamps
 def compute_average_spike_rates(date, round):
     cortana_path = "/home/connorlab/Documents/IntanData"
     round_path = Path(os.path.join(cortana_path, date, round))
+    script_dir = Path(__file__).parent
+    compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()
+    matching_files = list(compiled_dir.glob(f"*{round}*"))
+    raw_trial_data = read_pickle(matching_files[0])
+    print("raw trial data printed here: ")
+    print(raw_trial_data)
+
+    # Check if the experimental round is sorted
     sorted = round_path / 'sorted_spikes.pkl'
     if sorted.exists():
+        print("This round contains sorted spikes")
         sorted_data = read_sorted_data(round_path)
-        script_dir = Path(__file__).parent
-        compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()
-        matching_files = list(compiled_dir.glob(f"*{round}*"))
-        if matching_files:
-            file_path = matching_files[0]
-            raw_trial_data = read_pickle(file_path)
-        else:
-            print(f"No files found containing '{round}' in {compiled_dir}")
+        channels_with_units = set()
+        for index, row in sorted_data.iterrows():
+            channels_with_units.update(row['SpikeTimes'].keys())
+        sorted_channels = {channel.split('_Unit')[0] for channel in channels_with_units}
 
-    else:
-        script_dir = Path(__file__).parent
-        compiled_dir = (script_dir / '..' / '..' / 'compiled').resolve()
-        matching_files = list(compiled_dir.glob(f"*{round}*"))
-        if matching_files:
-            file_path = matching_files[0]
-            raw_trial_data = read_pickle(file_path)
-        else:
-            print(f"No files found containing '{round}' in {compiled_dir}")
+    valid_channels = {Channel.C_000, Channel.C_003, Channel.C_010} - sorted_channels
 
-    avg_spike_rates = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
+    sorted_data_spike_rates = compute_spike_rates_per_channel_per_monkey_for_all_channels(sorted_data)
+    raw_data_spike_rates = compute_spike_rates_per_channel_per_monkey(raw_trial_data, valid_channels)
+    print(sorted_data_spike_rates)
+    print(raw_data_spike_rates)
+    average_spike_rates = pd.concat([sorted_data_spike_rates, raw_data_spike_rates])
+    print('-----------------------combined--------------------')
+    print(average_spike_rates)
 
-    return avg_spike_rates
+    return average_spike_rates
 
 def read_sorted_data(round_path, sorted_spikes_filename ='sorted_spikes.pkl', compiled_trials_filename ='compiled.pk1'):
     compiled_trials_filepath = os.path.join(round_path, compiled_trials_filename)
@@ -48,14 +51,40 @@ def read_sorted_data(round_path, sorted_spikes_filename ='sorted_spikes.pkl', co
     sample_rate = load_intan_rhd_format.read_data(rhd_file_path)["frequency_parameters"]['amplifier_sample_rate']
     sorted_data = calculate_spike_timestamps(raw_trial_data, sorted_spikes, sample_rate)
     return sorted_data
-
-
-def compute_spike_rates_per_channel_per_monkey(raw_trial_data):
+def compute_spike_rates_per_channel_per_monkey_for_all_channels(raw_trial_data):
     # average spike rates for each monkey
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
+    avg_spike_rate_by_unit = pd.DataFrame(index=[])
     unique_channels = set()
     for index, row in raw_trial_data.iterrows():
         unique_channels.update(row['SpikeTimes'].keys())
+
+    for monkey in unique_monkeys:
+        monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
+        monkey_specific_spike_rate = {}
+
+        for channel in unique_channels:
+            spike_rates = []
+            for index, row in monkey_data.iterrows():
+                if channel in row['SpikeTimes']:
+                    data = row['SpikeTimes'][channel]
+                    spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
+                else:
+                    print(f"No data for {channel} in row {index}")
+
+            avg_spike_rate = sum(spike_rates) / len(spike_rates) if spike_rates else 0
+            monkey_specific_spike_rate[channel] = avg_spike_rate
+
+        # Add monkey-specific spike rates to the DataFrame
+        avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
+
+    print('---------------- Average spike rate by unit ---------------')
+    print(avg_spike_rate_by_unit)
+    return avg_spike_rate_by_unit
+
+def compute_spike_rates_per_channel_per_monkey(raw_trial_data, valid_channels):
+    # average spike rates for each monkey
+    unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
 
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
 
@@ -63,7 +92,7 @@ def compute_spike_rates_per_channel_per_monkey(raw_trial_data):
         monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
         monkey_specific_spike_rate = {}
 
-        for channel in unique_channels:
+        for channel in valid_channels:
             spike_rates = []
             for index, row in monkey_data.iterrows():
                 if channel in row['SpikeTimes']:
