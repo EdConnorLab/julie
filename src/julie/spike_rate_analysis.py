@@ -9,6 +9,8 @@ from matplotlib import pyplot as plt
 
 from julie.single_channel_analysis import read_pickle, calculate_spike_rate, extract_target_channel_data
 from julie.single_unit_analysis import calculate_spike_timestamps
+from neural_metadata_reader.metadata_reader import get_valid_channels
+
 
 def compute_average_spike_rates(date, round):
     cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
@@ -26,12 +28,10 @@ def compute_average_spike_rates(date, round):
         print("This round contains sorted spikes")
         sorted_data = read_sorted_data(round_path)
         channels_with_units = set()
-        for index, row in sorted_data.iterrows():
-            channels_with_units.update(row['SpikeTimes'].keys())
+        channels_with_units.update(sorted_data['SpikeTimes'][0].keys())
         sorted_channels = {channel.split('_Unit')[0] for channel in channels_with_units}
-
-    valid_channels = {Channel.C_000, Channel.C_003, Channel.C_010} - sorted_channels
-
+    # TODO: get the valid channels from metadata
+    valid_channels = set(get_valid_channels(date, round)) - sorted_channels
     sorted_data_spike_rates = compute_spike_rates_per_channel_per_monkey_for_all_channels(sorted_data)
     raw_data_spike_rates = compute_spike_rates_per_channel_per_monkey(raw_trial_data, valid_channels)
     print(sorted_data_spike_rates)
@@ -56,8 +56,7 @@ def compute_spike_rates_per_channel_per_monkey_for_all_channels(raw_trial_data):
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
     unique_channels = set()
-    for index, row in raw_trial_data.iterrows():
-        unique_channels.update(row['SpikeTimes'].keys())
+    unique_channels.update(raw_trial_data['SpikeTimes'][0].keys())
 
     for monkey in unique_monkeys:
         monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
@@ -118,9 +117,10 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
 
 
 if __name__ == '__main__':
-    date = "2023-10-30"
+    date = "2023-10-27"
     # round = "1698696277254800_231030_160438"
-    round = "1698699440778381_231030_165721"
+    # round = "1698699440778381_231030_165721"
+    round = "1698427250062585_231027_132051"
     avg_spike_rates = compute_average_spike_rates(date, round)
 
 

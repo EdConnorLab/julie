@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def get_valid_channels(metadata, date, round) -> list:
+def get_valid_channels(date, round) -> list:
     matching_round = metadata[(metadata['Date'] == date) & (metadata['Pickle File Name'].str.contains(round))]
     channels = matching_round['Channels1'].apply(lambda x: [int(i.strip()) for i in x.split(',')]).tolist()
     formatted_channels = ['Channel.C_{:03.0f}'.format(channel) for channel in channels[0]]
@@ -31,4 +31,4 @@ ER_data = metadata[metadata['Location'] == 'ER']
 AMG_data = metadata[metadata['Location'] == 'Amygdala']
 print(ER_data)
 print(AMG_data)
-get_valid_channels(metadata, "10-10-2023", "1696957915096002_231010_131155")
+get_valid_channels("10-10-2023", "1696957915096002_231010_131155")
