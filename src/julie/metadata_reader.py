@@ -24,7 +24,8 @@ class RecordingMetadataReader:
     def get_valid_channels(self, date, round_number) -> list:
         matching_round = self.recording_metadata[
             (self.recording_metadata['Date'] == date) & (self.recording_metadata['Round No.'] == round_number)]
-        channels = matching_round['Channels1'].apply(lambda x: [int(i.strip()) for i in x.split(',')]).tolist()
+        channels = matching_round['Channels1'].apply(
+            lambda x: [x] if isinstance(x, int) else [int(i.strip()) for i in str(x).split(',')]).tolist()
         enum_channels = [Channel(f'C-{channel:03}') for channel in channels[0]]
         print(enum_channels)
         return enum_channels
