@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pandas as pd
+from clat.intan.channels import Channel
 
 
 class RecordingMetadataReader:
@@ -24,8 +25,9 @@ class RecordingMetadataReader:
         matching_round = self.recording_metadata[
             (self.recording_metadata['Date'] == date) & (self.recording_metadata['Round No.'] == round_number)]
         channels = matching_round['Channels1'].apply(lambda x: [int(i.strip()) for i in x.split(',')]).tolist()
-        formatted_channels = ['Channel.C_{:03.0f}'.format(channel) for channel in channels[0]]
-        return formatted_channels
+        enum_channels = [Channel(f'C-{channel:03}') for channel in channels[0]]
+        print(enum_channels)
+        return enum_channels
 
     def get_pickle_filenames_for_specific_date(self, date):
         matching_date = self.recording_metadata[(self.recording_metadata['Date'] == date)]
@@ -46,9 +48,7 @@ class RecordingMetadataReader:
     def get_intan_folder_name_for_specific_round(self, date, round_number):
         matching_round = self.recording_metadata[
             (self.recording_metadata['Date'] == date) & (self.recording_metadata['Round No.'] == round_number)]
-        print(matching_round)
-        folder_name = matching_round['Folder Name']
-        print(folder_name)
+        folder_name = matching_round['Folder Name'].iloc[0]
         return str(folder_name)
 
 
