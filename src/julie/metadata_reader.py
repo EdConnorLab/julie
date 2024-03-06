@@ -52,13 +52,22 @@ class RecordingMetadataReader:
         folder_name = matching_round['Folder Name'].iloc[0]
         return str(folder_name)
 
+    def get_metadata_for_brain_region(self, brain_region):
+        if brain_region == 'ER':
+            return self.recording_metadata[(self.recording_metadata['Location'] == 'ER')]
+        elif brain_region == 'Amygdala' or brain_region == 'AMG':
+            return self.recording_metadata[(self.recording_metadata['Location'] == 'Amygdala')]
+        else:
+            raise ValueError('Brain region should be ER or AMG')
+
+
 
 if __name__ == "__main__":
     reader = RecordingMetadataReader()
-    metadata = reader.recording_metadata
+    data = reader.recording_metadata
     filename = reader.get_pickle_filename_for_specific_round("2023-10-27", 1)
-    ER_data = metadata[metadata['Location'] == 'ER']
-    AMG_data = metadata[metadata['Location'] == 'Amygdala']
+    ER_data = data[data['Location'] == 'ER']
+    AMG_data = data[data['Location'] == 'Amygdala']
     # print("JH 12: \n", ER_data)
     # print("JH 32192: \n", AMG_data)
     # get_valid_channels("10-10-2023", "1696957915096002_231010_131155")
