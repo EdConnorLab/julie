@@ -27,7 +27,6 @@ class RecordingMetadataReader:
         channels = matching_round['Channels1'].apply(
             lambda x: [x] if isinstance(x, int) else [int(i.strip()) for i in str(x).split(',')]).tolist()
         enum_channels = [Channel(f'C-{channel:03}') for channel in channels[0]]
-        print(enum_channels)
         return enum_channels
 
     def get_pickle_filenames_for_specific_date(self, date):

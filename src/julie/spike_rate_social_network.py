@@ -8,12 +8,15 @@ import pandas as pd
 
 from julie.social_network_anlaysis.network import create_digraph_with_edge_weights, create_graph_with_edge_weights
 from julie.social_network_anlaysis.social_data_reader import read_raw_social_data, extract_pairwise_interactions, \
-    generate_edgelist_from_pairwise_interactions, clean_raw_social_data, combine_edgelists
-from julie.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey, \
+    generate_edgelist_from_pairwise_interactions, clean_raw_social_data, combine_edgelists, \
+    read_social_data_and_validate
+from julie.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_raw_data, \
     set_node_attributes_with_default
 
 
 def main():
+    social_data = read_social_data_and_validate()
+    extract_grooming_interactions(social_data)
     current_dir = os.getcwd()
     raw_data_file_name = 'ZombiesFinalRawData.xlsx'
     file_path = Path(current_dir).parent.parent / 'resources' / raw_data_file_name
@@ -33,7 +36,7 @@ def main():
     cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
     round_path = os.path.join(cortana_path, date, round)
     raw_trial_data = read_sorted_data(round_path)
-    avg_spike_rate = compute_spike_rates_per_channel_per_monkey(raw_trial_data)
+    avg_spike_rate = compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data)
     random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]
     norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
 

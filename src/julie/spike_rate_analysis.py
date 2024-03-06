@@ -97,7 +97,7 @@ def compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data, vali
     # average spike rates for each monkey
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
-    print(f'valid channels {valid_channels}')
+    # print(f'valid channels {valid_channels}')
     for monkey in unique_monkeys:
         monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
         monkey_specific_spike_rate = {}
