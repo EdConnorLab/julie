@@ -70,8 +70,6 @@ def compute_spike_rates_per_channel_per_monkey_for_sorted_data(raw_trial_data):
     unique_channels = set()
     unique_channels.update(raw_trial_data['SpikeTimes'][0].keys())
 
-    print("-------------------unique channels-----------------")
-    print(unique_channels)
     for monkey in unique_monkeys:
         monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
         monkey_specific_spike_rate = {}
@@ -91,7 +89,6 @@ def compute_spike_rates_per_channel_per_monkey_for_sorted_data(raw_trial_data):
         # Add monkey-specific spike rates to the DataFrame
         avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
 
-    print('---------------- Average spike rate per channel per monkey for all channels ---------------')
     print(avg_spike_rate_by_unit)
     return avg_spike_rate_by_unit
 
@@ -121,7 +118,6 @@ def compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data, vali
         # Add monkey-specific spike rates to the DataFrame
         avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
 
-    print('------------- Average spike rate per channel per monkey for valid channels ------------')
     print(avg_spike_rate_by_unit)
     return avg_spike_rate_by_unit
 
