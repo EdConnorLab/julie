@@ -17,33 +17,33 @@ def compute_average_spike_rates(date, round_number):
     pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
     compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
     pickle_filepath = os.path.join(compiled_dir, pickle_filename)
+    print(f'Reading pickle file as raw data: {pickle_filepath}')
     raw_trial_data = read_pickle(pickle_filepath)
+
 
     intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
     cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
     round_path = Path(os.path.join(cortana_path, date, intan_dir))
 
+    valid_channels = set(metadata_reader.get_valid_channels(date, round_number))
+    raw_data_spike_rates = compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data, valid_channels)
+
     # Check if the experimental round is sorted
     sorted = round_path / 'sorted_spikes.pkl'
     if sorted.exists():
-        print("Sorted round...")
+        print("This is sorted round...")
+        print(f"Reading sorted data: {round_path}")
         sorted_data = read_sorted_data(round_path)
         channels_with_units = (sorted_data['SpikeTimes'][0].keys())
         sorted_channels = [int(s.split('_')[1][1:]) for s in channels_with_units]
-        sorted_enum_channels = [Channel(f'C-{channel:03}') for channel in sorted_channels]
-        channels = metadata_reader.get_valid_channels(date, round_number)
-        print(f"channels: {channels}")
-        valid_channels = set(channels) - set(sorted_enum_channels)
-        print("Computing average spike rate for sorted data ...")
+        sorted_enum_channels = list(set([Channel(f'C-{channel:03}') for channel in sorted_channels]))
+        # remove channel only if it exists as index
+        for channel in sorted_enum_channels:
+            if channel in raw_data_spike_rates.index:
+                raw_data_spike_rates = raw_data_spike_rates.drop(channel)
         sorted_data_spike_rates = compute_spike_rates_per_channel_per_monkey_for_sorted_data(sorted_data)
-        print("Computing average spike rate for the rest of the data...")
-        raw_data_spike_rates = compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data, valid_channels)
         average_spike_rates = pd.concat([sorted_data_spike_rates, raw_data_spike_rates])
     else:
-        valid_channels = set(metadata_reader.get_valid_channels(date, round_number))
-        print(f"channels: {valid_channels}")
-        print("Computing average spike rate for unsorted data ...")
-        raw_data_spike_rates = compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data, valid_channels)
         average_spike_rates = raw_data_spike_rates
 
     print('--------------------average spike rate dataframes combined--------------------')
@@ -108,8 +108,8 @@ def compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data, vali
         for channel in valid_channels:
             spike_rates = []
             for index, row in monkey_data.iterrows():
-                if channel in row['SpikeTimes']:
-                    data = row['SpikeTimes'][channel]
+                if is_channel_in_dict(channel, row['SpikeTimes']):
+                    data = get_value_from_dict_with_channel(channel, row['SpikeTimes'])
                     spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
                 else:
                     pass
@@ -126,6 +126,19 @@ def compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data, vali
     return avg_spike_rate_by_unit
 
 
+def get_value_from_dict_with_channel(channel, dictionary):
+    for key, value in dictionary.items():
+        if key.value == channel.value:
+            return value
+
+
+
+def is_channel_in_dict(channel, dict):
+    for key in dict:
+        if channel.value == key.value:
+            return True
+
+
 def set_node_attributes_with_default(graph, values_dict, attribute_name, default_value=0):
     for node in graph.nodes():
         value = values_dict.get(node, default_value)
@@ -133,8 +146,13 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
 
 
 if __name__ == '__main__':
-    # avg_spike_rates = compute_average_spike_rates("2023-10-24", 2)
-    avg_spike_rates = compute_average_spike_rates("2023-09-29", 2) # one with the problem
+#    avg_spike_rates = compute_average_spike_rates("2023-09-29", 2) # one with the problem
+
+    # avg_spike_rates = compute_average_spike_rates("2023-12-18", 3)
+
+    # ones with errors
+    avg_spike_rates = compute_average_spike_rates("2023-09-29", 1)
+    # avg_spike_rates = compute_average_spike_rates("2023-11-08", 1)
 
 # spike rate for each picture
 # for index, row in raw_trial_data.iterrows():
