@@ -5,6 +5,11 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 
+import behaviors
+from behaviors import AgonisticBehaviors as Agonistic
+from behaviors import SubmissiveBehaviors as Submissive
+from behaviors import AffiliativeBehaviors as Affiliative
+from behaviors import IndividualBehaviors as Individual
 
 def read_social_data_and_validate():
     # Load raw data file
@@ -89,6 +94,7 @@ def validate_number_of_monkeys(social_data):
 def validate_number_of_interval_datapoints(social_data):
     if 'Behavior Abbrev' not in social_data.columns:
         social_data['Behavior Abbrev'] = social_data['Behavior'].str[:4].str.replace(' ', '')
+        social_data['Behavior'] = social_data['Behavior'].str[4:]
 
     ''' CHECK NUMBER OF INTERVAL DATA '''
     # Create a mask to check if 'Behavior Abbrev' starts with 'I'
@@ -107,14 +113,25 @@ def validate_number_of_interval_datapoints(social_data):
         raise ValueError(f'Monkey specific interval datapoint count: {filtered_result}')
 
 
+def extract_specific_social_behavior(social_data, social_behavior: behaviors):
+    if isinstance(social_behavior, str):
+        specific_behavior = social_data[social_data['Behavior'].str.contains(social_behavior, case=False)]
+        print(specific_behavior)
+        specific_behavior = specific_behavior[['Focal Name', 'Social Modifier', 'Behavior']]
+    else:
+        raise ValueError('Invalid social behavior')
+    return specific_behavior
+
+
 def extract_grooming_interactions(social_data):
     grooming = social_data[social_data['Behavior'].str.contains('groom')]
     grooming = grooming[['Focal Name', 'Social Modifier', 'Behavior']]
-    print(grooming)
+    return grooming
 
 def extract_pairwise_interactions(social_data, social_interaction_type):
     social_data['Behavior Abbrev'] = social_data['Behavior'].str[:4].str.replace(' ', '')
     social_data = social_data[['Focal Name', 'Social Modifier', 'Behavior Abbrev']]
+
 
     if social_interaction_type.lower() == 'agonistic':
         subset = social_data[(social_data['Behavior Abbrev'] == 'AOA') | (social_data['Behavior Abbrev'] == 'IAG')]
@@ -168,9 +185,8 @@ def combine_edgelists(edgelist1, edgelist2):
     return combined_edgelist
 
 
-
-
 if __name__ == '__main__':
     social_data = read_social_data_and_validate()
-    extract_grooming_interactions(social_data)
+    mild_agg = extract_specific_social_behavior(social_data, Agonistic.MILD_AGGRESSION)
+    print(mild_agg)
 

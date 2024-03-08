@@ -12,6 +12,7 @@ from julie.social_network_anlaysis.social_data_reader import read_raw_social_dat
     read_social_data_and_validate
 from julie.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_raw_data, \
     set_node_attributes_with_default
+from social_data_reader import extract_grooming_interactions
 
 
 def main():
