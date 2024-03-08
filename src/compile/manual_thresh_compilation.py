@@ -6,7 +6,7 @@ from clat.compile.task.compile_task_id import PngSlideIdCollector
 from clat.compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, MonkeyGroupField
 from clat.compile.task.julie_intan_file_per_experiment_fields import SpikeTimesForChannelsField_Experiment, \
     EpochStartStopField_Experiment
-from julie.compile.julie_intan_file_per_trial_fields import SpikeTimesForChannelsField, EpochStartStopField
+from julie_intan_file_per_trial_fields import SpikeTimesForChannelsField, EpochStartStopField
 from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks, TaskField
 from clat.intan.one_file_spike_parsing import OneFileParser
 from clat.util import time_util
@@ -49,7 +49,7 @@ def compile_data(day: date = None,
     data = data[data['SpikeTimes'].notna()]
 
     # Save Data
-    save_dir = "/home/connorlab/Documents/GitHub/Julie/compiled"
+    save_dir = "/"
     # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
     save_path = os.path.join(save_dir, filename)
     data.to_pickle(save_path)

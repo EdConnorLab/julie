@@ -12,7 +12,7 @@ matplotlib.use("Qt5Agg")
 
 def main():
     experiment_data_filename = "1699392549541168_231107_162910_round2.pk1"
-    # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/"
+    # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/analyses/"
     # Get the current script directory
     script_dir = Path(__file__).parent
 
@@ -124,7 +124,7 @@ def plot_channel_histograms(data, channel):
     group_plot = plot_average_among_groups(channel_data, channel)
 
     ## SAVE PLOTS
-    # base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
+    # base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/analyses"
     # experiment_name = path_to_data_pickle_file.split("/")[-1].split(".")[0]
     # save_dir = os.path.join(base_save_dir, experiment_name)
     # os.makedirs(save_dir, exist_ok=True)

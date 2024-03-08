@@ -10,7 +10,7 @@ from clat.compile.task.julie_database_fields import FileNameField, MonkeyIdField
 from clat.intan.livenotes import map_task_id_to_epochs_with_livenotes
 from clat.intan.marker_channels import epoch_using_marker_channels
 from clat.intan.rhd import load_intan_rhd_format
-from julie.compile.manual_thresh_compilation import calc_start_and_end_unix_times
+from manual_thresh_compilation import calc_start_and_end_unix_times
 from clat.util.connection import Connection
 
 

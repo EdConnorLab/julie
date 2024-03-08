@@ -6,8 +6,8 @@ import networkx as nx
 from clat.intan.channels import Channel
 from clat.intan.rhd import load_intan_rhd_format
 
-from julie.single_channel_analysis import read_pickle, calculate_spike_rate
-from julie.single_unit_analysis import calculate_spike_timestamps
+from analyses.single_channel_analysis import read_pickle, calculate_spike_rate
+from analyses.single_unit_analysis import calculate_spike_timestamps
 from metadata_reader import RecordingMetadataReader
 
 

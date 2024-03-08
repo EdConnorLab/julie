@@ -14,8 +14,7 @@ from behaviors import IndividualBehaviors as Individual
 def read_social_data_and_validate():
     # Load raw data file
     current_dir = os.getcwd()
-    raw_data_file_name = 'ZombiesFinalRawData.xlsx'
-    file_path = Path(current_dir).parent.parent.parent / 'resources' / raw_data_file_name
+    file_path = '/home/connorlab/Documents/GitHub/Julie/resources/ZombiesFinalRawData.xlsx'
     raw_social_data = read_raw_social_data(file_path)
 
     # Clean raw data
@@ -114,9 +113,8 @@ def validate_number_of_interval_datapoints(social_data):
 
 
 def extract_specific_social_behavior(social_data, social_behavior: behaviors):
-    if isinstance(social_behavior, str):
-        specific_behavior = social_data[social_data['Behavior'].str.contains(social_behavior, case=False)]
-        print(specific_behavior)
+    if isinstance(social_behavior.value, str):
+        specific_behavior = social_data[social_data['Behavior'].str.contains(social_behavior.value, case=False)]
         specific_behavior = specific_behavior[['Focal Name', 'Social Modifier', 'Behavior']]
     else:
         raise ValueError('Invalid social behavior')
@@ -188,5 +186,6 @@ def combine_edgelists(edgelist1, edgelist2):
 if __name__ == '__main__':
     social_data = read_social_data_and_validate()
     mild_agg = extract_specific_social_behavior(social_data, Agonistic.MILD_AGGRESSION)
+    non_contact_agg = extract_specific_social_behavior(social_data, Agonistic.NON_CONTACT_AGGRESSION)
     print(mild_agg)
 

@@ -26,7 +26,7 @@ def main():
     data = add_pickled_dataframes(file_paths)
     print("Combined Dataframe number of trials:", len(data))
     combined_filename = "&".join(experiment_names) + ".pk1"
-    save_dir = "/home/connorlab/Documents/GitHub/Julie/compiled/"
+    save_dir = "//"
     save_path = os.path.join(save_dir, combined_filename)
     data.to_pickle(save_path)
 

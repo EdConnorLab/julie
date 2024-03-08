@@ -1,16 +1,14 @@
 import os
-import random
 import matplotlib.pyplot as plt
 from monkeyids import Monkey as M
 from pathlib import Path
 
-from social_data_reader.social_data_reader import read_raw_social_data, clean_raw_social_data, extract_pairwise_interactions, \
-    generate_edgelist_from_pairwise_interactions, combine_edgelists
-from spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey, \
-    compute_spike_rates_per_channel_per_monkey_for_sorted_data
+from social_data_reader import read_raw_social_data, clean_raw_social_data, extract_pairwise_interactions, \
+    generate_edgelist_from_pairwise_interactions
+from spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_sorted_data
 
 current_dir = os.getcwd()
-raw_data_file_name = 'ZombiesFinalRawData.xlsx'
+raw_data_file_name = '../../resources/ZombiesFinalRawData.xlsx'
 file_path = Path(current_dir).parent.parent.parent / 'resources' / raw_data_file_name
 raw_social_data = read_raw_social_data(file_path)
 social_data = clean_raw_social_data(raw_social_data)

@@ -6,13 +6,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from julie.social_network_anlaysis.network import create_digraph_with_edge_weights, create_graph_with_edge_weights
-from julie.social_network_anlaysis.social_data_reader import read_raw_social_data, extract_pairwise_interactions, \
-    generate_edgelist_from_pairwise_interactions, clean_raw_social_data, combine_edgelists, \
-    read_social_data_and_validate
-from julie.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_raw_data, \
+from analyses.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_raw_data, \
     set_node_attributes_with_default
-from social_data_reader import extract_grooming_interactions
+from network import create_graph_with_edge_weights
+from social_data_reader import read_social_data_and_validate, extract_grooming_interactions, read_raw_social_data, \
+    clean_raw_social_data, extract_pairwise_interactions, generate_edgelist_from_pairwise_interactions, \
+    combine_edgelists
 
 
 def main():

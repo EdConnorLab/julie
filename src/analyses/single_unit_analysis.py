@@ -5,7 +5,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clat.intan.rhd import load_intan_rhd_format
-from julie.compile.sorted_units_compilation import read_pickle
+from sorted_units_compilation import read_pickle
 
 matplotlib.use("Qt5Agg")
 
