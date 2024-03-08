@@ -112,10 +112,17 @@ def validate_number_of_interval_datapoints(social_data):
         raise ValueError(f'Monkey specific interval datapoint count: {filtered_result}')
 
 
-def extract_specific_social_behavior(social_data, social_behavior: behaviors):
-    if isinstance(social_behavior.value, str):
+def extract_specific_social_behavior(social_data, social_behavior):
+    if isinstance(social_behavior, (behaviors.AgonisticBehaviors or behaviors.SubmissiveBehaviors
+                                    or behaviors.AffiliativeBehaviors or behaviors.IndividualBehaviors)):
         specific_behavior = social_data[social_data['Behavior'].str.contains(social_behavior.value, case=False)]
         specific_behavior = specific_behavior[['Focal Name', 'Social Modifier', 'Behavior']]
+    elif isinstance(social_behavior, list):
+        specific_behavior = pd.DataFrame()
+        for beh in social_behavior:
+            temp = social_data[social_data['Behavior'].str.contains(beh.value, case=False)]
+            extracted_behavior = temp[['Focal Name', 'Social Modifier', 'Behavior']]
+            specific_behavior = pd.concat([specific_behavior, extracted_behavior])
     else:
         raise ValueError('Invalid social behavior')
     return specific_behavior
@@ -160,6 +167,11 @@ def expand_rows_on_comma(df):
             new_rows.append({col: row[col] for col in df.columns})
     return new_rows
 
+def generate_edgelist_from_extracted_interactions(interaction_df):
+    interaction_df = interaction_df[['Focal Name', 'Social Modifier']]
+    edgelist = interaction_df.groupby(['Focal Name', 'Social Modifier']).size().reset_index(name='weight')
+    return edgelist
+
 def generate_edgelist_from_pairwise_interactions(interaction_df):
 
     if (interaction_df['Behavior Abbrev'].isin(['ISU', 'AOS'])).all():
@@ -187,5 +199,15 @@ if __name__ == '__main__':
     social_data = read_social_data_and_validate()
     mild_agg = extract_specific_social_behavior(social_data, Agonistic.MILD_AGGRESSION)
     non_contact_agg = extract_specific_social_behavior(social_data, Agonistic.NON_CONTACT_AGGRESSION)
-    print(mild_agg)
+    edgelist_mild_agg = generate_edgelist_from_extracted_interactions(mild_agg)
+    edgelist_non_contact_agg = generate_edgelist_from_extracted_interactions(non_contact_agg)
+    edgelist_combined_agg = combine_edgelists(edgelist_mild_agg, edgelist_non_contact_agg)
+    edgelist_combined_agg_sorted = edgelist_combined_agg.sort_values('weight', ascending = False)
+    #print(edgelist_combined_agg_sorted)
+
+    submissive_behavior_list = list(Submissive)
+    submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)
+    edgelist_submissive = generate_edgelist_from_extracted_interactions(submissive)
+
+    print(edgelist_submissive['Social Modifier'].unique())
 

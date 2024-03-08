@@ -3,7 +3,7 @@ from enum import Enum
 
 class AgonisticBehaviors(Enum):
 
-    NON_CONTACT_AGGRESSION = "non contact aggression"
+    NON_CONTACT_AGGRESSION = "non-contact aggression"
     RESOURCE_TAKEOVER = "resource takeover"
     MILD_AGGRESSION = "mild aggression"
     SEVERE_AGGRESSION = "severe aggression"
