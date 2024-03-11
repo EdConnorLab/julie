@@ -1,6 +1,6 @@
 import networkx as nx
 import pandas as pd
-from monkeyids import Monkey
+from monkey_names import Monkey
 
 
 def create_digraph_with_edge_weights(edge_weights):

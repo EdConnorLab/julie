@@ -1,9 +1,9 @@
 import os
 import matplotlib.pyplot as plt
-from monkeyids import Monkey as M
+from monkey_names import Monkey as M
 from pathlib import Path
 
-from social_data_reader import read_raw_social_data, clean_raw_social_data, extract_pairwise_interactions, \
+from social_data_reader import read_raw_social_data, clean_raw_social_data, extract_specific_interaction_type, \
     generate_edgelist_from_pairwise_interactions
 from spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_sorted_data
 
@@ -13,7 +13,7 @@ file_path = Path(current_dir).parent.parent.parent / 'resources' / raw_data_file
 raw_social_data = read_raw_social_data(file_path)
 social_data = clean_raw_social_data(raw_social_data)
 
-affiliative = extract_pairwise_interactions(social_data, 'affiliative')
+affiliative = extract_specific_interaction_type(social_data, 'affiliative')
 edgelist_affiliative = generate_edgelist_from_pairwise_interactions(affiliative)
 print(f'edgelist: {edgelist_affiliative}')
 date = "2023-10-30"

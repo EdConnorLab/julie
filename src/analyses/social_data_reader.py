@@ -10,6 +10,8 @@ from behaviors import AgonisticBehaviors as Agonistic
 from behaviors import SubmissiveBehaviors as Submissive
 from behaviors import AffiliativeBehaviors as Affiliative
 from behaviors import IndividualBehaviors as Individual
+from monkey_names import Monkey
+
 
 def read_social_data_and_validate():
     # Load raw data file
@@ -117,23 +119,26 @@ def extract_specific_social_behavior(social_data, social_behavior):
                                     or behaviors.AffiliativeBehaviors or behaviors.IndividualBehaviors)):
         specific_behavior = social_data[social_data['Behavior'].str.contains(social_behavior.value, case=False)]
         specific_behavior = specific_behavior[['Focal Name', 'Social Modifier', 'Behavior']]
+        subset = specific_behavior.dropna(subset=['Social Modifier'])  # remove all nan
+        subset = expand_rows_on_comma(subset)
+        subset_df = pd.DataFrame(subset)
     elif isinstance(social_behavior, list):
         specific_behavior = pd.DataFrame()
         for beh in social_behavior:
             temp = social_data[social_data['Behavior'].str.contains(beh.value, case=False)]
             extracted_behavior = temp[['Focal Name', 'Social Modifier', 'Behavior']]
             specific_behavior = pd.concat([specific_behavior, extracted_behavior])
+            # print("Length of specific behavior updated to")
+            # print(specific_behavior.shape[0])
+        subset = specific_behavior.dropna(subset=['Social Modifier'])  # remove all nan
+        subset = expand_rows_on_comma(subset)
+        subset_df = pd.DataFrame(subset)
     else:
         raise ValueError('Invalid social behavior')
-    return specific_behavior
+    return subset_df
 
 
-def extract_grooming_interactions(social_data):
-    grooming = social_data[social_data['Behavior'].str.contains('groom')]
-    grooming = grooming[['Focal Name', 'Social Modifier', 'Behavior']]
-    return grooming
-
-def extract_pairwise_interactions(social_data, social_interaction_type):
+def extract_specific_interaction_type(social_data, social_interaction_type):
     social_data['Behavior Abbrev'] = social_data['Behavior'].str[:4].str.replace(' ', '')
     social_data = social_data[['Focal Name', 'Social Modifier', 'Behavior Abbrev']]
 
@@ -195,19 +200,65 @@ def combine_edgelists(edgelist1, edgelist2):
     return combined_edgelist
 
 
+def read_genealogy_matrix(genealogy_file):
+    pass
+
+
 if __name__ == '__main__':
+    # Get genealogy matrix
+    file_path = '/home/connorlab/Documents/GitHub/Julie/resources/genealogy_matrix.xlsx'
+    xl = pd.ExcelFile(file_path)
+    sheet_names = xl.sheet_names
+    genealogy_df = xl.parse(sheet_names[0])
+    print(genealogy_df)
+
+    # Agonistic
     social_data = read_social_data_and_validate()
-    mild_agg = extract_specific_social_behavior(social_data, Agonistic.MILD_AGGRESSION)
-    non_contact_agg = extract_specific_social_behavior(social_data, Agonistic.NON_CONTACT_AGGRESSION)
-    edgelist_mild_agg = generate_edgelist_from_extracted_interactions(mild_agg)
-    edgelist_non_contact_agg = generate_edgelist_from_extracted_interactions(non_contact_agg)
-    edgelist_combined_agg = combine_edgelists(edgelist_mild_agg, edgelist_non_contact_agg)
-    edgelist_combined_agg_sorted = edgelist_combined_agg.sort_values('weight', ascending = False)
-    #print(edgelist_combined_agg_sorted)
+    agonistic_behaviors = list(Agonistic)
+    agon = extract_specific_social_behavior(social_data, agonistic_behaviors)
+    edge_list_agon = generate_edgelist_from_extracted_interactions(agon)
 
-    submissive_behavior_list = list(Submissive)
-    submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)
-    edgelist_submissive = generate_edgelist_from_extracted_interactions(submissive)
+    # Submissive
+    submissive_behaviors = list(Submissive)
+    sub = extract_specific_social_behavior(social_data, submissive_behaviors)
+    edge_list_sub = generate_edgelist_from_extracted_interactions(sub)
 
-    print(edgelist_submissive['Social Modifier'].unique())
+    # Affiliative
+    affiliative_behaviors = list(Affiliative)
+    aff = extract_specific_social_behavior(social_data, affiliative_behaviors)
+    edge_list_aff = generate_edgelist_from_extracted_interactions(aff)
+
+    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+
+    # for zombie in zombies:
+    #     one_dim = pd.DataFrame()
+    #     fill_in = pd.DataFrame({'Focal Name': zombies, 'Social Modifier': zombie, 'weight': 0})
+    #     dim = edge_list_agon[edge_list_agon['Social Modifier'] == zombie]
+    #     one_dim = pd.merge(fill_in, dim, how='left', on=['Focal Name', 'Social Modifier'])
+    #     one_dim['weight'] = one_dim['weight_x'] + one_dim['weight_y']
+    #     one_dim['weight'] = one_dim['weight'].fillna(0)
+    #     temp = one_dim[['Focal Name', 'weight']]
+    #     print(temp)
+    #     genealogy_df = pd.merge(genealogy_df, temp, on='Focal Name')
+    #     print(genealogy_df)
+
+    temp = pd.DataFrame()
+    for zombie in zombies:
+        fill_in = pd.DataFrame({'Focal Name': zombies, 'Social Modifier': zombie, 'weight': 0})
+        dim = edge_list_agon[edge_list_agon['Social Modifier'] == zombie]
+        one_dim = pd.merge(fill_in, dim, how='left', on=['Focal Name', 'Social Modifier'])
+        one_dim['weight'] = (one_dim['weight_x'] + one_dim['weight_y']).fillna(0)
+        # TODO : finish this part
+
+    #
+    # genealogy_df = pd.merge(genealogy_df, temp, on='Focal Name')
+
+
+
+
+    # submissive_behavior_list = list(Submissive)
+    # submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)
+    # edgelist_submissive = generate_edgelist_from_extracted_interactions(submissive)
+    #
+    # print(edgelist_submissive['Social Modifier'].unique())
 

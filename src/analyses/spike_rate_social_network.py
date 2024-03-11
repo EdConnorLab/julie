@@ -9,26 +9,25 @@ import pandas as pd
 from analyses.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_raw_data, \
     set_node_attributes_with_default
 from network import create_graph_with_edge_weights
-from social_data_reader import read_social_data_and_validate, extract_grooming_interactions, read_raw_social_data, \
-    clean_raw_social_data, extract_pairwise_interactions, generate_edgelist_from_pairwise_interactions, \
+from social_data_reader import read_social_data_and_validate, read_raw_social_data, \
+    clean_raw_social_data, extract_specific_interaction_type, generate_edgelist_from_pairwise_interactions, \
     combine_edgelists
 
 
 def main():
     social_data = read_social_data_and_validate()
-    extract_grooming_interactions(social_data)
     current_dir = os.getcwd()
     raw_data_file_name = 'ZombiesFinalRawData.xlsx'
     file_path = Path(current_dir).parent.parent / 'resources' / raw_data_file_name
     raw_social_data = read_raw_social_data(file_path)
     social_data = clean_raw_social_data(raw_social_data)
-    agonistic = extract_pairwise_interactions(social_data, 'agonistic')
-    submissive = extract_pairwise_interactions(social_data, 'submissive')
+    agonistic = extract_specific_interaction_type(social_data, 'agonistic')
+    submissive = extract_specific_interaction_type(social_data, 'submissive')
     edgelist_agonistic = generate_edgelist_from_pairwise_interactions(agonistic)
     edgelist_submissive = generate_edgelist_from_pairwise_interactions(submissive)
     combined_edgelist = combine_edgelists(edgelist_agonistic, edgelist_submissive)
 
-    affiliative= extract_pairwise_interactions(social_data, 'affiliative')
+    affiliative= extract_specific_interaction_type(social_data, 'affiliative')
     edgelist_affiliative = generate_edgelist_from_pairwise_interactions(affiliative)
 
     date = "2023-10-30"

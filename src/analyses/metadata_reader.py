@@ -60,7 +60,6 @@ class RecordingMetadataReader:
             raise ValueError('Brain region should be ER or AMG')
 
 
-
 if __name__ == "__main__":
     reader = RecordingMetadataReader()
     data = reader.recording_metadata
