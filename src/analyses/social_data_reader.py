@@ -4,6 +4,7 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 
 import behaviors
 from behaviors import AgonisticBehaviors as Agonistic
@@ -11,6 +12,7 @@ from behaviors import SubmissiveBehaviors as Submissive
 from behaviors import AffiliativeBehaviors as Affiliative
 from behaviors import IndividualBehaviors as Individual
 from monkey_names import Monkey
+import spike_rate_analysis
 
 
 def read_social_data_and_validate():
@@ -205,12 +207,6 @@ def read_genealogy_matrix(genealogy_file):
 
 
 if __name__ == '__main__':
-    # Get genealogy matrix
-    file_path = '/home/connorlab/Documents/GitHub/Julie/resources/genealogy_matrix.xlsx'
-    xl = pd.ExcelFile(file_path)
-    sheet_names = xl.sheet_names
-    genealogy_df = xl.parse(sheet_names[0])
-    print(genealogy_df)
 
     # Agonistic
     social_data = read_social_data_and_validate()
@@ -228,32 +224,75 @@ if __name__ == '__main__':
     aff = extract_specific_social_behavior(social_data, affiliative_behaviors)
     edge_list_aff = generate_edgelist_from_extracted_interactions(aff)
 
+    # Get genealogy matrix
+    file_path = '/home/connorlab/Documents/GitHub/Julie/resources/genealogy_matrix.xlsx'
+    xl = pd.ExcelFile(file_path)
+    sheet_names = xl.sheet_names
+    genealogy_df = xl.parse(sheet_names[0])
+    print(genealogy_df)
+    genealogy_df['Focal Name'] = genealogy_df['Focal Name'].astype(str)
+
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
 
-    # for zombie in zombies:
-    #     one_dim = pd.DataFrame()
-    #     fill_in = pd.DataFrame({'Focal Name': zombies, 'Social Modifier': zombie, 'weight': 0})
-    #     dim = edge_list_agon[edge_list_agon['Social Modifier'] == zombie]
-    #     one_dim = pd.merge(fill_in, dim, how='left', on=['Focal Name', 'Social Modifier'])
-    #     one_dim['weight'] = one_dim['weight_x'] + one_dim['weight_y']
-    #     one_dim['weight'] = one_dim['weight'].fillna(0)
-    #     temp = one_dim[['Focal Name', 'weight']]
-    #     print(temp)
-    #     genealogy_df = pd.merge(genealogy_df, temp, on='Focal Name')
-    #     print(genealogy_df)
+    zombies_df = pd.DataFrame({'Focal Name': zombies})
+    temp = pd.DataFrame({'Focal Name': zombies})
 
-    temp = pd.DataFrame()
     for zombie in zombies:
         fill_in = pd.DataFrame({'Focal Name': zombies, 'Social Modifier': zombie, 'weight': 0})
         dim = edge_list_agon[edge_list_agon['Social Modifier'] == zombie]
         one_dim = pd.merge(fill_in, dim, how='left', on=['Focal Name', 'Social Modifier'])
         one_dim['weight'] = (one_dim['weight_x'] + one_dim['weight_y']).fillna(0)
-        # TODO : finish this part
+        one_dim.drop(['weight_x','weight_y'], axis=1, inplace=True)
+        one_dim['weight'] = one_dim['weight'].astype(int)
+        one_dim.rename(columns={'weight': f'Agonistic Behavior Towards {zombie}'}, inplace=True)
+        one_dim.drop('Social Modifier', axis=1, inplace=True)
+        temp = pd.merge(temp, one_dim, on='Focal Name')
+    cols_to_normalize = temp.select_dtypes(include='int64').columns[1:]
+    # Normalize selected columns
+    normalized_cols = temp[cols_to_normalize] / temp[cols_to_normalize].max()
+    # Concatenate normalized columns with the first column and non-integer columns
+    normalized_df = pd.concat([temp.iloc[:, 0], normalized_cols, temp.select_dtypes(exclude='int64')], axis=1)
+    genealogy_df = pd.merge(genealogy_df, temp, on='Focal Name')
 
-    #
-    # genealogy_df = pd.merge(genealogy_df, temp, on='Focal Name')
+    # Normalize
+    cols_to_normalize = genealogy_df.select_dtypes(include='int64').columns[1:]
+    normalized_cols = genealogy_df[cols_to_normalize] / genealogy_df[cols_to_normalize].max()
+    normalized_df = pd.concat([genealogy_df.iloc[:, 0], normalized_cols, genealogy_df.select_dtypes(exclude='int64')], axis=1)
+    print(normalized_df.shape)
 
+    # Get only numbers
+    numeric_columns = normalized_df.iloc[:, 1:-1]
+    # Convert selected numeric columns to a NumPy array
+    numeric_array = numeric_columns.values
+    # Append a column of 1s to the array to represent the last column
+    numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
+    # Compute pseudoinverse of the resulting array
+    X = numeric_array_with_ones
+    Xpinv= np.dot(np.linalg.inv(np.dot(X.T,X)),X.T)
 
+    print(Xpinv.shape)
+
+    # Get Spike Rate -- Y
+    ER_population_spike_rate = spike_rate_analysis.compute_population_spike_rate_for_ER()
+    matching_indices = zombies_df['Focal Name'].isin(ER_population_spike_rate.index)
+    matching_rows = ER_population_spike_rate.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
+    spike_rate_df = matching_rows.to_frame(name='Spike Rates')
+    spike_rate_df['Focal Name'] = spike_rate_df.index
+    spike_rate_df = pd.merge(zombies_df, spike_rate_df, on='Focal Name', how='left').fillna(0)
+
+    # Extract values from a column as a NumPy array
+    column_values = spike_rate_df['Spike Rates'].values
+    # Convert the column values to a column matrix
+    Y = column_values.reshape(-1, 1)
+
+    beta = Xpinv @ Y
+    print('beta')
+    print(beta)
+
+    lr = LinearRegression()
+    lr.fit(X, Y)
+    print('coeff')
+    print(lr.coef_)
 
 
     # submissive_behavior_list = list(Submissive)

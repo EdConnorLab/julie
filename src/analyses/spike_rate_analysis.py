@@ -141,13 +141,31 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
         nx.set_node_attributes(graph, {node: value}, attribute_name)
 
 
+def compute_population_spike_rate_for_ER():
+    # ER Population Average Spike Rate
+    ER_population = pd.DataFrame()
+    reader = RecordingMetadataReader()
+    ER = reader.get_metadata_for_brain_region('ER')
+
+    for index, row in ER.iterrows():
+        date = row['Date'].strftime('%Y-%m-%d')
+        round = row['Round No.']
+        avg_spike_rates_for_specific_round = compute_average_spike_rates(date, round)
+        ER_population = pd.concat([ER_population, avg_spike_rates_for_specific_round])
+    population_spike_rate = ER_population.mean()
+    print(population_spike_rate)
+    return population_spike_rate
+
+
 if __name__ == '__main__':
+    # compute_population_spike_rate_for_ER()
+
     avg_spike_rates = compute_average_spike_rates("2023-09-29", 2)
     # ones with errors
     # avg_spike_rates = compute_average_spike_rates("2023-09-29", 1)
     # avg_spike_rates = compute_average_spike_rates("2023-11-08", 1)
 
-    # ER Population Average Spike Rate
+    # # ER Population Average Spike Rate
     # ER_population = pd.DataFrame()
     # reader = RecordingMetadataReader()
     # ER = reader.get_metadata_for_brain_region('ER')
@@ -160,7 +178,7 @@ if __name__ == '__main__':
     # population_spike_rate = ER_population.mean()
     # print(population_spike_rate)
 
-    # AMG Population Average Spike Rate
+    # # AMG Population Average Spike Rate
     # AMG_population = pd.DataFrame()
     # reader = RecordingMetadataReader()
     # AMG = reader.get_metadata_for_brain_region('AMG')
