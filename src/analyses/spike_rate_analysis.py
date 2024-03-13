@@ -11,6 +11,65 @@ from analyses.single_unit_analysis import calculate_spike_timestamps
 from metadata_reader import RecordingMetadataReader
 
 
+def get_raw_spike_rates_for_each_stimulus(date, round_number):
+
+    metadata_reader = RecordingMetadataReader()
+
+    pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
+    compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
+    pickle_filepath = os.path.join(compiled_dir, pickle_filename)
+    print(f'Reading pickle file as raw data: {pickle_filepath}')
+    raw_trial_data = read_pickle(pickle_filepath)
+
+    intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
+    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
+    round_path = Path(os.path.join(cortana_path, date, intan_dir))
+
+    valid_channels = set(metadata_reader.get_valid_channels(date, round_number))
+    raw_data_spike_rates = compute_spike_rates_per_channel(raw_trial_data, valid_channels)
+
+    # Check if the experimental round is sorted
+    sorted = round_path / 'sorted_spikes.pkl'
+    if sorted.exists():
+        print("This is sorted round...")
+        print(f"Reading sorted data: {round_path}")
+        sorted_data = read_sorted_data(round_path)
+        channels_with_units = (sorted_data['SpikeTimes'][0].keys())
+        sorted_channels = [int(s.split('_')[1][1:]) for s in channels_with_units]
+        sorted_enum_channels = list(set([Channel(f'C-{channel:03}') for channel in sorted_channels]))
+        # remove channel only if it exists as index
+        for channel in sorted_enum_channels:
+            if channel in raw_data_spike_rates.index:
+                raw_data_spike_rates = raw_data_spike_rates.drop(channel)
+        sorted_data_spike_rates = compute_spike_rates_per_channel(sorted_data)
+        spike_rates = pd.concat([sorted_data_spike_rates, raw_data_spike_rates])
+    else:
+        spike_rates = raw_data_spike_rates
+
+    return spike_rates
+
+def compute_spike_rates_per_channel(raw_trial_data, valid_channels):
+    # average spike rates for each monkey
+    unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
+    final_final = pd.DataFrame()
+    for monkey in unique_monkeys:
+        monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
+        monkey_spike_rates = {}
+        for channel in valid_channels:
+            spike_rates = []
+            for index, row in monkey_data.iterrows():
+                if channel in row['SpikeTimes']:
+                    data = row['SpikeTimes'][channel]
+                    spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
+                else:
+                    print(f"No data for {channel} in row {index}")
+            monkey_spike_rates[channel] = spike_rates
+        final_final[monkey] = pd.Series(monkey_spike_rates)
+    # print(final_final)
+    return final_final
+
+
+
 def compute_average_spike_rates_of_each_unit_for_specific_round(date, round_number):
     metadata_reader = RecordingMetadataReader()
 
@@ -178,7 +237,9 @@ def compute_overall_average_spike_rates_for_each_round(date, round_number):
 
 
 if __name__ == '__main__':
-    compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
+
+    df = get_raw_spike_rates_for_each_stimulus("12-11-2023", 1)
+    # compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
     # avg_spike_rates = compute_average_spike_rates_of_each_unit_for_specific_round("2023-09-29", 2)
     # ones with errors
     # avg_spike_rates = compute_average_spike_rates("2023-09-29", 1)
