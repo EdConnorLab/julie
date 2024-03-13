@@ -17,7 +17,6 @@ import spike_rate_analysis
 
 def read_social_data_and_validate():
     # Load raw data file
-    current_dir = os.getcwd()
     file_path = '/home/connorlab/Documents/GitHub/Julie/resources/ZombiesFinalRawData.xlsx'
     raw_social_data = read_raw_social_data(file_path)
 
@@ -141,7 +140,6 @@ def extract_specific_social_behavior(social_data, social_behavior):
 
 
 def extract_specific_interaction_type(social_data, social_interaction_type):
-    social_data['Behavior Abbrev'] = social_data['Behavior'].str[:4].str.replace(' ', '')
     social_data = social_data[['Focal Name', 'Social Modifier', 'Behavior Abbrev']]
 
 
@@ -271,6 +269,7 @@ if __name__ == '__main__':
 
 
     # Get Spike Rate -- Y
+
     #ER_population_spike_rate = spike_rate_analysis.compute_population_spike_rates_for_ER()
     population_spike_rate = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
     print("population spike rate")
