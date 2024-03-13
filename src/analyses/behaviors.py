@@ -19,6 +19,7 @@ class SubmissiveBehaviors(Enum):
     CROUCH_NO_CONTACT = "crouch no contact"
     CROUCH_CONTACT = "crouch contact"
 
+
 class AffiliativeBehaviors(Enum):
 
     GIVE_GROOM = "give groom"
@@ -26,6 +27,7 @@ class AffiliativeBehaviors(Enum):
     SOCIAL_PLAY = "social play"
     CONTACT = "contact"
     PROXIMITY = "proximity"
+
 
 class IndividualBehaviors(Enum):
 

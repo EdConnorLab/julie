@@ -268,13 +268,15 @@ if __name__ == '__main__':
     numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
     # Compute pseudoinverse of the resulting array
     X = numeric_array_with_ones
-    print(f"shape of matrix X: {X.shape}")
 
 
     # Get Spike Rate -- Y
-    ER_population_spike_rate = spike_rate_analysis.compute_population_spike_rate_for_ER()
-    matching_indices = zombies_df['Focal Name'].isin(ER_population_spike_rate.index)
-    matching_rows = ER_population_spike_rate.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
+    #ER_population_spike_rate = spike_rate_analysis.compute_population_spike_rates_for_ER()
+    population_spike_rate = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
+    print("population spike rate")
+    print(population_spike_rate)
+    matching_indices = zombies_df['Focal Name'].isin(population_spike_rate.index)
+    matching_rows = population_spike_rate.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
     spike_rate_df = matching_rows.to_frame(name='Spike Rates')
     spike_rate_df['Focal Name'] = spike_rate_df.index
     spike_rate_df = pd.merge(zombies_df, spike_rate_df, on='Focal Name', how='left').fillna(0)
@@ -283,27 +285,18 @@ if __name__ == '__main__':
     column_values = spike_rate_df['Spike Rates'].values
     # Convert the column values to a column matrix
     Y = column_values.reshape(-1, 1)
-    print(f"shape of Y: {Y.shape}")
 
     lr = LinearRegression(fit_intercept=False)
     lr.fit(numeric_array, Y)
 
     print('coeff')
     print(lr.coef_)
-    print(lr.coef_.shape)
 
-    Xpinv1 = np.dot(np.linalg.inv(np.dot(X.T, X)), X.T)
+    Xpinv = np.linalg.pinv(X)
 
-    Xpinv2 = np.linalg.pinv(X)
-    if np.allclose(Xpinv1, Xpinv2):
-        print("Matrices A and B are equal.")
-    else:
-        print("Matrices A and B are not equal.")
-    print(f"shape of matrix Xpinv: {Xpinv1.shape}")
-    beta = Xpinv1 @ Y
+    beta = Xpinv @ Y
     print('beta')
     print(beta)
-    print(beta.shape)
 
     # submissive_behavior_list = list(Submissive)
     # submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)

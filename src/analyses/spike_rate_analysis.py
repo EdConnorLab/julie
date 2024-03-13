@@ -11,7 +11,7 @@ from analyses.single_unit_analysis import calculate_spike_timestamps
 from metadata_reader import RecordingMetadataReader
 
 
-def compute_average_spike_rates(date, round_number):
+def compute_average_spike_rates_of_each_unit_for_specific_round(date, round_number):
     metadata_reader = RecordingMetadataReader()
 
     pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
@@ -141,7 +141,7 @@ def set_node_attributes_with_default(graph, values_dict, attribute_name, default
         nx.set_node_attributes(graph, {node: value}, attribute_name)
 
 
-def compute_population_spike_rate_for_ER():
+def compute_population_spike_rates_for_ER():
     # ER Population Average Spike Rate
     ER_population = pd.DataFrame()
     reader = RecordingMetadataReader()
@@ -150,48 +150,39 @@ def compute_population_spike_rate_for_ER():
     for index, row in ER.iterrows():
         date = row['Date'].strftime('%Y-%m-%d')
         round = row['Round No.']
-        avg_spike_rates_for_specific_round = compute_average_spike_rates(date, round)
+        avg_spike_rates_for_specific_round = compute_average_spike_rates_of_each_unit_for_specific_round(date, round)
         ER_population = pd.concat([ER_population, avg_spike_rates_for_specific_round])
     population_spike_rate = ER_population.mean()
     print(population_spike_rate)
     return population_spike_rate
 
+def compute_population_spike_rates_for_AMG():
+    AMG_population = pd.DataFrame()
+    reader = RecordingMetadataReader()
+    AMG = reader.get_metadata_for_brain_region('AMG')
+
+    for index, row in AMG.iterrows():
+        date = row['Date'].strftime('%Y-%m-%d')
+        round = row['Round No.']
+        avg_spike_rates_for_specific_round = compute_average_spike_rates_of_each_unit_for_specific_round(date, round)
+        AMG_population = pd.concat([AMG_population, avg_spike_rates_for_specific_round])
+    population_spike_rate = AMG_population.mean()
+    print(population_spike_rate)
+    return population_spike_rate
+
+
+def compute_overall_average_spike_rates_for_each_round(date, round_number):
+    overall_average_spike_rates = compute_average_spike_rates_of_each_unit_for_specific_round(date, round_number).mean()
+    return overall_average_spike_rates
+
+
 
 if __name__ == '__main__':
-    # compute_population_spike_rate_for_ER()
-
-    avg_spike_rates = compute_average_spike_rates("2023-09-29", 2)
+    compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
+    # avg_spike_rates = compute_average_spike_rates_of_each_unit_for_specific_round("2023-09-29", 2)
     # ones with errors
     # avg_spike_rates = compute_average_spike_rates("2023-09-29", 1)
     # avg_spike_rates = compute_average_spike_rates("2023-11-08", 1)
-
-    # # ER Population Average Spike Rate
-    # ER_population = pd.DataFrame()
-    # reader = RecordingMetadataReader()
-    # ER = reader.get_metadata_for_brain_region('ER')
-    #
-    # for index, row in ER.iterrows():
-    #     date = row['Date'].strftime('%Y-%m-%d')
-    #     round = row['Round No.']
-    #     avg_spike_rates_for_specific_round = compute_average_spike_rates(date, round)
-    #     ER_population = pd.concat([ER_population, avg_spike_rates_for_specific_round])
-    # population_spike_rate = ER_population.mean()
-    # print(population_spike_rate)
-
-    # # AMG Population Average Spike Rate
-    # AMG_population = pd.DataFrame()
-    # reader = RecordingMetadataReader()
-    # AMG = reader.get_metadata_for_brain_region('AMG')
-    #
-    # for index, row in AMG.iterrows():
-    #     date = row['Date'].strftime('%Y-%m-%d')
-    #     round = row['Round No.']
-    #     avg_spike_rates_for_specific_round = compute_average_spike_rates(date, round)
-    #     AMG_population = pd.concat([AMG_population, avg_spike_rates_for_specific_round])
-    # population_spike_rate = AMG_population.mean()
-    # print(population_spike_rate)
-
-
 
 
 # spike rate for each picture
