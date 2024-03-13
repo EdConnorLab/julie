@@ -268,9 +268,8 @@ if __name__ == '__main__':
     numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
     # Compute pseudoinverse of the resulting array
     X = numeric_array_with_ones
-    Xpinv= np.dot(np.linalg.inv(np.dot(X.T,X)),X.T)
+    print(f"shape of matrix X: {X.shape}")
 
-    print(Xpinv.shape)
 
     # Get Spike Rate -- Y
     ER_population_spike_rate = spike_rate_analysis.compute_population_spike_rate_for_ER()
@@ -284,16 +283,27 @@ if __name__ == '__main__':
     column_values = spike_rate_df['Spike Rates'].values
     # Convert the column values to a column matrix
     Y = column_values.reshape(-1, 1)
+    print(f"shape of Y: {Y.shape}")
 
-    beta = Xpinv @ Y
-    print('beta')
-    print(beta)
+    lr = LinearRegression(fit_intercept=False)
+    lr.fit(numeric_array, Y)
 
-    lr = LinearRegression()
-    lr.fit(X, Y)
     print('coeff')
     print(lr.coef_)
+    print(lr.coef_.shape)
 
+    Xpinv1 = np.dot(np.linalg.inv(np.dot(X.T, X)), X.T)
+
+    Xpinv2 = np.linalg.pinv(X)
+    if np.allclose(Xpinv1, Xpinv2):
+        print("Matrices A and B are equal.")
+    else:
+        print("Matrices A and B are not equal.")
+    print(f"shape of matrix Xpinv: {Xpinv1.shape}")
+    beta = Xpinv1 @ Y
+    print('beta')
+    print(beta)
+    print(beta.shape)
 
     # submissive_behavior_list = list(Submissive)
     # submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)
