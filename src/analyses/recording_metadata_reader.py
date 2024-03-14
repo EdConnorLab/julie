@@ -1,25 +1,23 @@
-import os
-from pathlib import Path
-
 import pandas as pd
 from clat.intan.channels import Channel
 
+from excel_data_reader import ExcelDataReader
 
-class RecordingMetadataReader:
+
+class RecordingMetadataReader(ExcelDataReader):
 
     def __init__(self):
-        raw_data_file_name = 'Cortana_Recording_Metadata.xlsx'
-        dir = '/home/connorlab/Documents/GitHub/Julie/resources'
-        file_path = Path(os.path.join(dir, raw_data_file_name))
-        xl = pd.ExcelFile(file_path)
-        channels_tab = xl.parse('Channels')
-        locations_tab = xl.parse('Location')
-        recording_metadata = pd.merge(channels_tab, locations_tab, on=['Date', 'Round No.'])
-        self.xl = xl
-        self.recording_metadata = recording_metadata
+        super().__init__(file_name='Cortana_Recording_Metadata.xlsx')
+        self.recording_metadata = self.get_metadata()
 
     def get_metadata(self):
-        return self.recording_metadata
+        if self.xl is None:
+            raise ValueError("Excel file not loaded.")
+
+        channels_tab = self.xl.parse('Channels')
+        locations_tab = self.xl.parse('Location')
+        recording_metadata = pd.merge(channels_tab, locations_tab, on=['Date', 'Round No.'])
+        return recording_metadata
 
     def get_valid_channels(self, date, round_number) -> list:
         matching_round = self.recording_metadata[
@@ -52,7 +50,7 @@ class RecordingMetadataReader:
         return str(folder_name)
 
     def get_metadata_for_brain_region(self, brain_region):
-        if brain_region == 'ER':
+        if brain_region == 'ER' or brain_region == 'Entorhinal':
             return self.recording_metadata[(self.recording_metadata['Location'] == 'ER')]
         elif brain_region == 'Amygdala' or brain_region == 'AMG':
             return self.recording_metadata[(self.recording_metadata['Location'] == 'Amygdala')]

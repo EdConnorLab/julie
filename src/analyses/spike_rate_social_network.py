@@ -11,7 +11,7 @@ from analyses.spike_rate_analysis import read_sorted_data, compute_spike_rates_p
 from network import create_graph_with_edge_weights
 from social_data_reader import read_social_data_and_validate, read_raw_social_data, \
     clean_raw_social_data, extract_specific_interaction_type, generate_edgelist_from_pairwise_interactions, \
-    combine_edgelists
+    combine_edge_lists
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
     submissive = extract_specific_interaction_type(social_data, 'submissive')
     edgelist_agonistic = generate_edgelist_from_pairwise_interactions(agonistic)
     edgelist_submissive = generate_edgelist_from_pairwise_interactions(submissive)
-    combined_edgelist = combine_edgelists(edgelist_agonistic, edgelist_submissive)
+    combined_edgelist = combine_edge_lists(edgelist_agonistic, edgelist_submissive)
 
     affiliative= extract_specific_interaction_type(social_data, 'affiliative')
     edgelist_affiliative = generate_edgelist_from_pairwise_interactions(affiliative)
