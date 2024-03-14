@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
-from social_data_processor import SocialDataReader
+
+from excel_data_reader import ExcelDataReader
+from social_data_reader import SocialDataReader
 from sklearn.linear_model import LinearRegression
 
 from behaviors import AgonisticBehaviors as Agonistic
@@ -77,10 +79,7 @@ def combine_edge_lists(edge_list1, edge_list2):
 
 if __name__ == '__main__':
 
-    social_data_reader = SocialDataReader()
-    raw_social_data = social_data_reader.get_raw_social_data()
-    social_data = social_data_reader.clean_raw_social_data()
-
+    social_data = SocialDataReader().social_data
     # Agonistic
     agonistic_behaviors = list(Agonistic)
     agon = extract_specific_social_behavior(social_data, agonistic_behaviors)
@@ -97,18 +96,17 @@ if __name__ == '__main__':
     edge_list_aff = generate_edge_list_from_extracted_interactions(aff)
 
     # Get genealogy matrix
-    file_path = '/home/connorlab/Documents/GitHub/Julie/resources/genealogy_matrix.xlsx'
-    xl = pd.ExcelFile(file_path)
-    sheet_names = xl.sheet_names
-    genealogy_df = xl.parse(sheet_names[0])
-    print(genealogy_df)
-    genealogy_df['Focal Name'] = genealogy_df['Focal Name'].astype(str)
+    excel_data_reader = ExcelDataReader(file_name='genealogy_matrix.xlsx')
+    genealogy_data = excel_data_reader.get_first_sheet()
+    print(genealogy_data)
+    genealogy_data['Focal Name'] = genealogy_data['Focal Name'].astype(str)
 
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
 
     zombies_df = pd.DataFrame({'Focal Name': zombies})
     temp = pd.DataFrame({'Focal Name': zombies})
 
+    feature_df = genealogy_data.copy(deep=True)
     for zombie in zombies:
         fill_in = pd.DataFrame({'Focal Name': zombies, 'Social Modifier': zombie, 'weight': 0})
         dim = edge_list_agon[edge_list_agon['Social Modifier'] == zombie]
@@ -124,12 +122,12 @@ if __name__ == '__main__':
     normalized_cols = temp[cols_to_normalize] / temp[cols_to_normalize].max()
     # Concatenate normalized columns with the first column and non-integer columns
     normalized_df = pd.concat([temp.iloc[:, 0], normalized_cols, temp.select_dtypes(exclude='int64')], axis=1)
-    genealogy_df = pd.merge(genealogy_df, temp, on='Focal Name')
+    feature_df = pd.merge(feature_df, temp, on='Focal Name')
 
     # Normalize
-    cols_to_normalize = genealogy_df.select_dtypes(include='int64').columns[1:]
-    normalized_cols = genealogy_df[cols_to_normalize] / genealogy_df[cols_to_normalize].max()
-    normalized_df = pd.concat([genealogy_df.iloc[:, 0], normalized_cols, genealogy_df.select_dtypes(exclude='int64')], axis=1)
+    cols_to_normalize = feature_df.select_dtypes(include='int64').columns[1:]
+    normalized_cols = feature_df[cols_to_normalize] / feature_df[cols_to_normalize].max()
+    normalized_df = pd.concat([feature_df.iloc[:, 0], normalized_cols, feature_df.select_dtypes(exclude='int64')], axis=1)
     print(normalized_df.shape)
 
     # Get only numbers

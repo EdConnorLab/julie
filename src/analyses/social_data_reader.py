@@ -12,7 +12,8 @@ class SocialDataReader(ExcelDataReader):
         if self.xl is None:
             raise ValueError("Excel file not loaded.")
         # Get the last sheet in the Excel file
-        raw_social_data = self.xl.book.sheet_by_index(-1)
+        sheet_names = self.xl.sheet_names
+        raw_social_data = self.xl.parse(sheet_names[-1])
         return raw_social_data
 
     def clean_raw_social_data(self):

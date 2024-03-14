@@ -8,7 +8,7 @@ from clat.intan.rhd import load_intan_rhd_format
 
 from analyses.single_channel_analysis import read_pickle, calculate_spike_rate
 from analyses.single_unit_analysis import calculate_spike_timestamps
-from metadata_reader import RecordingMetadataReader
+from recording_metadata_reader import RecordingMetadataReader
 
 
 def get_raw_spike_rates_for_each_stimulus(date, round_number):
