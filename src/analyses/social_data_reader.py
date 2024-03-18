@@ -32,18 +32,23 @@ class SocialDataReader(ExcelDataReader):
             str).str.zfill(2)
                 + self.raw_social_data.iloc[:, -2].astype(str).str.zfill(2))
 
-        social_data = self.raw_social_data[
+        self.social_data = self.raw_social_data[
             ['Observer', 'Focal Name', 'Behavior', 'Social Modifier', 'Space Use', 'VideoDate', 'Time']].copy()
         # Remove parentheses and extract monkey ids
-        social_data['Social Modifier'] = social_data['Social Modifier'].str.replace(r'^.*?\((.*?)\).*|^(.+)$',
+        self.social_data['Social Modifier'] = self.social_data['Social Modifier'].str.replace(r'^.*?\((.*?)\).*|^(.+)$',
                                                                                     lambda m: m.group(1) if m.group(
                                                                                         1) is not None else m.group(2),
                                                                                     regex=True)
-        social_data['Focal Name'] = social_data['Focal Name'].str.replace(r'^.*?\((.*?)\).*|^(.+)$',
+        self.social_data['Focal Name'] = self.social_data['Focal Name'].str.replace(r'^.*?\((.*?)\).*|^(.+)$',
                                                                           lambda m: m.group(1) if m.group(
                                                                               1) is not None else m.group(2),
                                                                           regex=True)
-        return social_data
+
+        if 'Behavior Abbrev' not in self.social_data.columns:
+            self.social_data['Behavior Abbrev'] = self.social_data['Behavior'].str[:4].str.replace(' ', '')
+            self.social_data['Behavior'] = self.social_data['Behavior'].str[4:]
+
+        return self.social_data
 
     def validate_number_of_monkeys(self, social_data):
         # For dates before 06/13/2022, 10 monkeys
@@ -70,10 +75,6 @@ class SocialDataReader(ExcelDataReader):
                 print(f"Validation passed! Valid number of monkeys for {video_date}")
 
     def validate_number_of_interval_datapoints(self, social_data):
-
-        if 'Behavior Abbrev' not in social_data.columns:
-            social_data['Behavior Abbrev'] = social_data['Behavior'].str[:4].str.replace(' ', '')
-            social_data['Behavior'] = social_data['Behavior'].str[4:]
 
         ''' CHECK NUMBER OF INTERVAL DATA '''
         # Create a mask to check if 'Behavior Abbrev' starts with 'I'

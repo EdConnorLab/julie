@@ -14,7 +14,6 @@ from recording_metadata_reader import RecordingMetadataReader
 def get_raw_spike_rates_for_each_stimulus(date, round_number):
 
     metadata_reader = RecordingMetadataReader()
-
     pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
     compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
     pickle_filepath = os.path.join(compiled_dir, pickle_filename)
@@ -185,7 +184,6 @@ def get_value_from_dict_with_channel(channel, dictionary):
     for key, value in dictionary.items():
         if key.value == channel.value:
             return value
-
 
 
 def is_channel_in_dict(channel, diction):

@@ -64,6 +64,6 @@ if __name__ == "__main__":
     filename = reader.get_pickle_filename_for_specific_round("2023-10-27", 1)
     ER_data = data[data['Location'] == 'ER']
     AMG_data = data[data['Location'] == 'Amygdala']
-    # print("JH 12: \n", ER_data)
-    # print("JH 32192: \n", AMG_data)
+    print("JH 12: \n", ER_data)
+    print("JH 32192: \n", AMG_data)
     # get_valid_channels("10-10-2023", "1696957915096002_231010_131155")
