@@ -16,7 +16,7 @@ import spike_rate_analysis
 def extract_specific_social_behavior(social_data, social_behavior):
     if isinstance(social_behavior, (Agonistic or Submissive or Affiliative or Individual)):
         specific_behavior = social_data[social_data['Behavior'].str.contains(social_behavior.value, case=False)]
-        specific_behavior = specific_behavior[['Focal Name', 'Social Modifier', 'Behavior']]
+        specific_behavior = specific_behavior[['Focal Name', 'Social Modifier', 'Behavior', 'Behavior Abbrev']]
         subset = specific_behavior.dropna(subset=['Social Modifier'])  # remove all nan
         subset = expand_rows_on_comma(subset)
         subset_df = pd.DataFrame(subset)
@@ -24,7 +24,7 @@ def extract_specific_social_behavior(social_data, social_behavior):
         specific_behavior = pd.DataFrame()
         for beh in social_behavior:
             temp = social_data[social_data['Behavior'].str.contains(beh.value, case=False)]
-            extracted_behavior = temp[['Focal Name', 'Social Modifier', 'Behavior']]
+            extracted_behavior = temp[['Focal Name', 'Social Modifier', 'Behavior', 'Behavior Abbrev']]
             specific_behavior = pd.concat([specific_behavior, extracted_behavior])
             # print("Length of specific behavior updated to")
             # print(specific_behavior.shape[0])
@@ -50,6 +50,14 @@ def expand_rows_on_comma(df):
     return new_rows
 
 
+def combine_edge_lists(edge_list1, edge_list2):
+    # Concatenate the two edge lists
+    combined_edge_list = pd.concat([edge_list1, edge_list2])
+    # Group by 'Focal Name' and 'Social Modifier' and sum the weights
+    combined_edge_list = combined_edge_list.groupby(['Focal Name', 'Social Modifier']).sum().reset_index()
+    return combined_edge_list
+
+
 def generate_edge_list_from_extracted_interactions(interaction_df):
     interaction_df = interaction_df[['Focal Name', 'Social Modifier']]
     edge_list = interaction_df.groupby(['Focal Name', 'Social Modifier']).size().reset_index(name='weight')
@@ -66,15 +74,6 @@ def generate_edge_list_from_pairwise_interactions(interaction_df):
     edge_list = interaction_df.groupby(['Focal Name', 'Social Modifier']).size().reset_index(name='weight')
     print(f'edge list {edge_list}')
     return edge_list
-
-
-def combine_edge_lists(edge_list1, edge_list2):
-    # Concatenate the two edge lists
-    combined_edge_list = pd.concat([edge_list1, edge_list2])
-    # Group by 'Focal Name' and 'Social Modifier' and sum the weights
-    combined_edge_list = combined_edge_list.groupby(['Focal Name', 'Social Modifier']).sum().reset_index()
-    return combined_edge_list
-
 
 
 if __name__ == '__main__':
@@ -125,10 +124,10 @@ if __name__ == '__main__':
     feature_df = pd.merge(feature_df, temp, on='Focal Name')
 
     # Normalize
-    cols_to_normalize = feature_df.select_dtypes(include='int64').columns[1:]
-    normalized_cols = feature_df[cols_to_normalize] / feature_df[cols_to_normalize].max()
-    normalized_df = pd.concat([feature_df.iloc[:, 0], normalized_cols, feature_df.select_dtypes(exclude='int64')], axis=1)
-    print(normalized_df.shape)
+    # cols_to_normalize = feature_df.select_dtypes(include='int64').columns[1:]
+    # normalized_cols = feature_df[cols_to_normalize] / feature_df[cols_to_normalize].max()
+    # normalized_df = pd.concat([feature_df.iloc[:, 0], normalized_cols, feature_df.select_dtypes(exclude='int64')], axis=1)
+    # print(normalized_df.shape)
 
     # Get only numbers
     numeric_columns = normalized_df.iloc[:, 1:-1]
