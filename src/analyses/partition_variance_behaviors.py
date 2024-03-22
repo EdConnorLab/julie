@@ -7,18 +7,20 @@ excel_data_reader = ExcelDataReader(file_name='feature_df_submissive.xlsx')
 beh = excel_data_reader.get_first_sheet()
 beh = beh.iloc[:, 11:] # only extract the beh columns
 
-n_entries = beh.shape[0] * beh.shape[1] - beh.shape[0]
+Sm_arrow = beh.sum(axis=1) / (beh.shape[1] - 1)
+Sarrow_m = beh.sum(axis=0) / (beh.shape[0] - 1)
 
-Savg = beh.values.flatten().sum() / n_entries
-m_arrow = beh.sum(axis=1) / (beh.shape[1] - 1) - Savg
-arrow_m = beh.sum(axis=0) / (beh.shape[0] - 1)  - Savg
+sum_Sm_arrow = Sm_arrow.sum() # these two values should be the same
+sum_Sarrow_m = Sarrow_m.sum() # these two values should be the same
 
-adjusted_columns = beh.sub(m_arrow, axis=0) # subtract a column
-adjusted_rows = adjusted_columns.sub(arrow_m, axis=1) # subtract a row
-adjusted_beh = adjusted_rows - Savg
+Sm_arrow_values = Sm_arrow.values.reshape(-1,1)
+Sarrow_m_values = Sarrow_m.values.reshape(-1,1)
 
-numbers = adjusted_beh.values
-np.fill_diagonal(numbers, 0)
-beh_final = pd.DataFrame(numbers, columns=adjusted_rows.columns)
-beh_final.to_excel('submissive_adjusted.xlsx', index=False)
+Sm_arrow_n = Sm_arrow_values * Sarrow_m_values.T
+
+temp = Sm_arrow_n / sum_Sm_arrow
+final = beh.values - temp
+np.fill_diagonal(final, 0)
+beh_final = pd.DataFrame(final, columns=beh.columns)
 print(beh_final)
+# beh_final.to_excel('submissive_adjusted.xlsx', index=False)
