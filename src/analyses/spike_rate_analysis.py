@@ -52,7 +52,7 @@ def get_raw_spike_rates_for_each_stimulus(date, round_number):
 def compute_spike_rates_per_channel(raw_trial_data, valid_channels):
     # average spike rates for each monkey
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
-    final_final = pd.DataFrame()
+    spike_rate_per_channel = pd.DataFrame()
     for monkey in unique_monkeys:
         monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
         monkey_spike_rates = {}
@@ -65,9 +65,8 @@ def compute_spike_rates_per_channel(raw_trial_data, valid_channels):
                 else:
                     print(f"No data for {channel} in row {index}")
             monkey_spike_rates[channel] = spike_rates
-        final_final[monkey] = pd.Series(monkey_spike_rates)
-    # print(final_final)
-    return final_final
+        spike_rate_per_channel[monkey] = pd.Series(monkey_spike_rates)
+    return spike_rate_per_channel
 
 
 
