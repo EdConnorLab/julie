@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from statsmodels.regression.linear_model import OLS
 
 from excel_data_reader import ExcelDataReader
 from social_data_reader import SocialDataReader
@@ -121,7 +122,8 @@ if __name__ == '__main__':
     normalized_cols = temp[cols_to_normalize] / temp[cols_to_normalize].max()
     # Concatenate normalized columns with the first column and non-integer columns
     normalized_df = pd.concat([temp.iloc[:, 0], normalized_cols, temp.select_dtypes(exclude='int64')], axis=1)
-    feature_df = pd.merge(feature_df, temp, on='Focal Name')
+    feature_df = temp.copy(deep=True)
+    #feature_df = pd.merge(feature_df, temp, on='Focal Name')
 
     # Normalize
     # cols_to_normalize = feature_df.select_dtypes(include='int64').columns[1:]
@@ -161,6 +163,9 @@ if __name__ == '__main__':
 
     print('coeff')
     print(lr.coef_)
+    model = OLS(Y, X)
+    results = model.fit()
+    print(results.summary())
 
     # submissive_behavior_list = list(Submissive)
     # submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)
