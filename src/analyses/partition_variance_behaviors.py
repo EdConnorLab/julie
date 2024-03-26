@@ -35,20 +35,20 @@ submission_by_81G = pd.Series(beh_final.iloc[6, :].values)
 general_submission = Sm_arrow
 general_attraction_to_submission = pd.Series(Sarrow_m.values)
 
+# Combine to make X
 combined_df = pd.concat([attraction_to_submission_81G, submission_by_81G, general_submission, general_attraction_to_submission], axis=1,
                         keys=['attraction_to_submission_81G', 'submission_by_81G', 'general_submission', 'general_attraction_to_submission'])
 combined_df.reset_index(drop=True, inplace=True)
 numeric_array = combined_df.values
 # Append a column of 1s to the array to represent the last column
 numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
-# Compute pseudoinverse of the resulting array
 X = numeric_array_with_ones
-
 
 zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
 zombies_df = pd.DataFrame({'Focal Name': zombies})
 
-# spike_rates = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
+''' Looking at average spike rates'''
+# spike_rates = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-10-05", 1)
 # matching_indices = zombies_df['Focal Name'].isin(spike_rates.index)
 # matching_rows = spike_rates.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
 # spike_rate_df = matching_rows.to_frame(name='Spike Rates')
@@ -59,7 +59,34 @@ zombies_df = pd.DataFrame({'Focal Name': zombies})
 # column_values = spike_rate_df['Spike Rates'].values
 # # Convert the column values to a column matrix
 # Y = column_values.reshape(-1, 1)
-#
+
+'''Looking at individual trial'''
+spike_rates = spike_rate_analysis.get_raw_spike_rates_for_each_stimulus("2023-10-04", 3)
+spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
+print(spike_rates_zombies.head())
+
+for index, row in spike_rates_zombies.iterrows():
+    repeated_X_rows = []
+    spike_rate_list = []
+    row_index = 0
+    print(f"for {index}, linear regression computed")
+    for column_name, value in row.items():
+        print(f"\t{len(value)} spike rates for {column_name}")
+        spike_rate_list.extend(value)
+        repeated_X_rows.extend([X[row_index]] * len(value))
+        row_index += 1
+    Y = np.array(spike_rate_list).reshape(-1, 1)
+    final_X = np.array(repeated_X_rows)
+    print('hi')
+    lr = LinearRegression(fit_intercept=False)
+    lr.fit(final_X, Y)
+    print('coeff')
+    print(lr.coef_)
+    model = OLS(Y, final_X)
+    results = model.fit()
+    print(results.summary())
+
+# # Linear Regression
 # lr = LinearRegression(fit_intercept=False)
 # lr.fit(X, Y)
 #
@@ -71,6 +98,6 @@ zombies_df = pd.DataFrame({'Focal Name': zombies})
 
 
 # Get individual spikes for individual stimuli
-sp_rate_each = spike_rate_analysis.get_raw_spike_rates_for_each_stimulus("2023-09-29", 2)
-sp_rate_zombies = sp_rate_each[zombies]
-print(sp_rate_zombies)
+# sp_rate_each = spike_rate_analysis.get_raw_spike_rates_for_each_stimulus("2023-09-29", 2)
+# sp_rate_zombies = sp_rate_each[zombies]
+# print(sp_rate_zombies)
