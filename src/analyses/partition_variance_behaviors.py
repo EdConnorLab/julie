@@ -10,6 +10,7 @@ from monkey_names import Monkey
 
 excel_data_reader = ExcelDataReader(file_name='feature_df_submissive.xlsx')
 beh = excel_data_reader.get_first_sheet()
+beh = beh.iloc[:, 2:]  # extract only the values
 
 Sm_arrow = beh.sum(axis=1) / (beh.shape[1] - 1)  # average frequency of the monkey m submitting to other monkeys
 Sarrow_m = beh.sum(axis=0) / (beh.shape[0] - 1)  # average frequency of other monkeys submitting to the monkey m
@@ -86,18 +87,19 @@ for index, row in spike_rates_zombies.iterrows():
     model = OLS(Y, X)
     results = model.fit()
     print(results.summary())
-    for i, ax in enumerate(axes.flatten()):
-        if i < X.shape[1] - 1:  # Make sure we don't exceed the number of features
-            x = X[:, i]
-            ax.plot(x, Y, marker='o', linestyle='None')
-            for n, label in enumerate(labels):
-                ax.text(x[n], Y[n], label, ha='right')
-            ax.set_title(f"{date} Round No.{round_number} -- Neuron from {index}")
-            ax.set_ylabel('Average spike rate')
-            ax.set_xlabel(f'{feature_names[i]}')
+    # for i, ax in enumerate(axes.flatten()):
+    #     if i < X.shape[1] - 1:  # Make sure we don't exceed the number of features
+    #         x = X[:, i]
+    #         ax.plot(x, Y, marker='o', linestyle='None')
+    #         for n, label in enumerate(labels):
+    #             ax.text(x[n], Y[n], label, ha='right')
+    #         ax.set_title(f"{date} Round No.{round_number} -- Neuron from {index}")
+    #         ax.set_ylabel('Average spike rate')
+    #         ax.set_xlabel(f'{feature_names[i]}')
 
     plt.tight_layout()  # Adjust layout to prevent overlap
     plt.show()
+
 ''' Looking at individual trial '''
 # spike_rates = spike_rate_analysis.get_spike_rates_for_each_trial("2023-10-04", 3)
 # spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]

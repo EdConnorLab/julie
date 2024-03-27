@@ -257,7 +257,7 @@ def compute_overall_average_spike_rates_for_each_round(date, round_number):
 if __name__ == '__main__':
 
     df = get_spike_rates_for_each_trial("2023-10-04", 4)
-    # compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
+    #dat = compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
     # avg_spike_rates = compute_average_spike_rates_of_each_unit_for_specific_round("2023-09-29", 2)
     # ones with errors
     # avg_spike_rates = compute_average_spike_rates("2023-09-29", 1)
