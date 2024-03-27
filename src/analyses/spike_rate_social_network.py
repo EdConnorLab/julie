@@ -3,32 +3,44 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from pathlib import Path
-
 import pandas as pd
 
 from analyses.spike_rate_analysis import read_sorted_data, compute_average_spike_rates_from_raw_trial_data, \
     set_node_attributes_with_default
 from network import create_graph_with_edge_weights
-from social_data_reader import read_social_data_and_validate, read_raw_social_data, \
-    clean_raw_social_data, extract_specific_interaction_type, generate_edgelist_from_pairwise_interactions, \
-    combine_edge_lists
-
+from social_data_reader import SocialDataReader
+from social_data_processor import extract_specific_social_behavior, generate_edge_list_from_extracted_interactions
+from behaviors import AgonisticBehaviors as Agonistic
+from behaviors import SubmissiveBehaviors as Submissive
+from behaviors import AffiliativeBehaviors as Affiliative
+from behaviors import IndividualBehaviors as Individual
 
 def main():
-    social_data = read_social_data_and_validate()
-    current_dir = os.getcwd()
-    raw_data_file_name = 'ZombiesFinalRawData.xlsx'
-    file_path = Path(current_dir).parent.parent / 'resources' / raw_data_file_name
-    raw_social_data = read_raw_social_data(file_path)
-    social_data = clean_raw_social_data(raw_social_data)
-    agonistic = extract_specific_interaction_type(social_data, 'agonistic')
-    submissive = extract_specific_interaction_type(social_data, 'submissive')
-    edgelist_agonistic = generate_edgelist_from_pairwise_interactions(agonistic)
-    edgelist_submissive = generate_edgelist_from_pairwise_interactions(submissive)
-    combined_edgelist = combine_edge_lists(edgelist_agonistic, edgelist_submissive)
+    social_data = SocialDataReader().social_data
+    # Agonistic
+    agonistic_behaviors = list(Agonistic)
+    agon = extract_specific_social_behavior(social_data, agonistic_behaviors)
+    edge_list_agon = generate_edge_list_from_extracted_interactions(agon)
 
-    affiliative= extract_specific_interaction_type(social_data, 'affiliative')
-    edgelist_affiliative = generate_edgelist_from_pairwise_interactions(affiliative)
+    # Submissive
+    submissive_behaviors = list(Submissive)
+    sub = extract_specific_social_behavior(social_data, submissive_behaviors)
+    edge_list_sub = generate_edge_list_from_extracted_interactions(sub)
+
+    # Affiliative
+    affiliative_behaviors = list(Affiliative)
+    aff = extract_specific_social_behavior(social_data, affiliative_behaviors)
+    edge_list_aff = generate_edge_list_from_extracted_interactions(aff)
+
+
+    # agonistic = extract_specific_social_behavior(social_data, 'agonistic')
+    # submissive = extract_specific_interaction_type(social_data, 'submissive')
+    # edgelist_agonistic = generate_edgelist_from_pairwise_interactions(agonistic)
+    # edgelist_submissive = generate_edgelist_from_pairwise_interactions(submissive)
+    # combined_edgelist = combine_edge_lists(edgelist_agonistic, edgelist_submissive)
+    #
+    # affiliative= extract_specific_interaction_type(social_data, 'affiliative')
+    # edgelist_affiliative = generate_edgelist_from_pairwise_interactions(affiliative)
 
     date = "2023-10-30"
     round = "1698699440778381_231030_165721"
@@ -40,7 +52,7 @@ def main():
     norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
 
     #G, adj_matrix, weights = create_digraph_with_edge_weights(combined_edgelist)
-    G, adj_matrix, weights = create_graph_with_edge_weights(edgelist_affiliative)
+    ###### G, adj_matrix, weights = create_graph_with_edge_weights(edgelist_affiliative)
     set_node_attributes_with_default(G, norm_values, 'spike_rate', default_value=0)
 
     colormap = plt.cm.get_cmap('YlOrBr')
