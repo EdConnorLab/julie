@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from statsmodels.regression.linear_model import OLS
-
 from sklearn.linear_model import LinearRegression
+
 import spike_rate_analysis
 from excel_data_reader import ExcelDataReader
 from monkey_names import Monkey
@@ -14,8 +14,7 @@ beh = beh.iloc[:, 11:] # only extract the beh columns
 Sm_arrow = beh.sum(axis=1) / (beh.shape[1] - 1)
 Sarrow_m = beh.sum(axis=0) / (beh.shape[0] - 1)
 
-sum_Sm_arrow = Sm_arrow.sum() # these two values should be the same
-sum_Sarrow_m = Sarrow_m.sum() # these two values should be the same
+sum_Sm_arrow = Sm_arrow.sum() # this should be the same as sum_Sarrow_m = Sarrow_m.sum()
 
 Sm_arrow_values = Sm_arrow.values.reshape(-1,1)
 Sarrow_m_values = Sarrow_m.values.reshape(-1,1)
@@ -27,7 +26,6 @@ final = beh.values - temp
 np.fill_diagonal(final, 0)
 beh_final = pd.DataFrame(final, columns=beh.columns)
 print(beh_final) # this table is RSm->n
-# beh_final.to_excel('submissive_adjusted.xlsx', index=False)
 
 # Get 81G
 attraction_to_submission_81G = beh_final.iloc[:, 6]
@@ -91,9 +89,3 @@ for index, row in spike_rates_zombies.iterrows():
 # model = OLS(Y, X)
 # results = model.fit()
 # print(results.summary())
-
-
-# Get individual spikes for individual stimuli
-# sp_rate_each = spike_rate_analysis.get_raw_spike_rates_for_each_stimulus("2023-09-29", 2)
-# sp_rate_zombies = sp_rate_each[zombies]
-# print(sp_rate_zombies)
