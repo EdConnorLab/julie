@@ -10,7 +10,6 @@ from monkey_names import Monkey
 
 excel_data_reader = ExcelDataReader(file_name='feature_df_submissive.xlsx')
 beh = excel_data_reader.get_first_sheet()
-beh = beh.iloc[:, 11:]  # only extract the beh columns
 
 Sm_arrow = beh.sum(axis=1) / (beh.shape[1] - 1)
 Sarrow_m = beh.sum(axis=0) / (beh.shape[0] - 1)
