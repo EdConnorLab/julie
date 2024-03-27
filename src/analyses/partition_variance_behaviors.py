@@ -71,17 +71,13 @@ for index, row in spike_rates_zombies.iterrows():
     row_index = 0
     print(f"for {index}, linear regression computed")
     for column_name, value in row.items():
-        print(f"\t{len(value)} spike rates for {column_name}")
+        print(f"\t{len(value)} spike rates for {column_name} and {value.count(0)} of them are zeros")
         spike_rate_list.extend(value)
         repeated_X_rows.extend([X[row_index]] * len(value))
         row_index += 1
     Y = np.array(spike_rate_list).reshape(-1, 1)
     final_X = np.array(repeated_X_rows)
-    print('hi')
-    lr = LinearRegression(fit_intercept=False)
-    lr.fit(final_X, Y)
-    print('coeff')
-    print(lr.coef_)
+
     model = OLS(Y, final_X)
     results = model.fit()
     print(results.summary())
