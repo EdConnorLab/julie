@@ -59,7 +59,7 @@ zombies_df = pd.DataFrame({'Focal Name': zombies})
 # Y = column_values.reshape(-1, 1)
 
 '''Looking at individual trial'''
-spike_rates = spike_rate_analysis.get_raw_spike_rates_for_each_stimulus("2023-10-04", 3)
+spike_rates = spike_rate_analysis.get_spike_rates_for_each_trial("2023-10-04", 3)
 spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
 print(spike_rates_zombies.head())
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from analyses.spike_rate_analysis import read_sorted_data, compute_spike_rates_per_channel_per_monkey_for_raw_data, \
+from analyses.spike_rate_analysis import read_sorted_data, compute_average_spike_rates_from_raw_trial_data, \
     set_node_attributes_with_default
 from network import create_graph_with_edge_weights
 from social_data_reader import read_social_data_and_validate, read_raw_social_data, \
@@ -35,7 +35,7 @@ def main():
     cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
     round_path = os.path.join(cortana_path, date, round)
     raw_trial_data = read_sorted_data(round_path)
-    avg_spike_rate = compute_spike_rates_per_channel_per_monkey_for_raw_data(raw_trial_data)
+    avg_spike_rate = compute_average_spike_rates_from_raw_trial_data(raw_trial_data)
     random_row = avg_spike_rate.loc["Channel.C_017_Unit 1"]
     norm_values = ((random_row - random_row.min()) / (random_row.max() - random_row.min())).to_dict()
 
