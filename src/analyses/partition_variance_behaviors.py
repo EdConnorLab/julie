@@ -1,8 +1,11 @@
+from itertools import combinations
+
 import numpy as np
 import pandas as pd
 from statsmodels.regression.linear_model import OLS
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 import spike_rate_analysis
 from excel_data_reader import ExcelDataReader
@@ -40,10 +43,8 @@ combined_df = pd.concat([attraction_to_submission_81G, submission_by_81G, genera
                               'general_attraction_to_submission'])
 combined_df.reset_index(drop=True, inplace=True)
 numeric_array = combined_df.values
-# Append a column of 1s to the array to represent the last column
-numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
-X = numeric_array_with_ones
-X = np.delete(X, 6, axis=0)
+X = np.delete(numeric_array, 6, axis=0)
+
 
 zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
 zombies_df = pd.DataFrame({'Focal Name': zombies})
@@ -60,36 +61,40 @@ zombies_df = pd.DataFrame({'Focal Name': zombies})
 # column_values = spike_rate_df['Spike Rates'].values
 # # Convert the column values to a column matrix
 # Y = column_values.reshape(-1, 1)
-#
+# # Append a column of 1s to the array to represent the last column
+# aug_X = np.hstack((X, np.ones((numeric_array.shape[0], 1))))
 # # Linear Regression
 # lr = LinearRegression(fit_intercept=False)
-# lr.fit(X, Y)
+# lr.fit(aug_X, Y)
 #
 # print('coeff')
 # print(lr.coef_)
-# model = OLS(Y, X)
+# model = OLS(Y, aug_X)
 # results = model.fit()
 # print(results.summary())
 
 ''' Looking at each neuron '''
-date = "2023-10-10"
+date = "2023-09-29"
 round_number = 2
 spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round_number)
 spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
 print(spike_rates_zombies.head())
 labels = spike_rates_zombies.columns.tolist()
-
+print(f'Labels: {labels}')
+labels = ['Z_M1', 'Z_F1', 'Z_F2', 'Z_F3', 'Z_F4', 'Z_F5', 'Z_F7', 'Z_J1', 'Z_J2']
+aug_X = np.hstack((X, np.ones((X.shape[0], 1))))
 
 for index, row in spike_rates_zombies.iterrows():
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
-    print(f"{date} round number {round_number} : performing linear regression for {index}")
+    print(f"LOOKING AT EACH NEURON: {date} round number {round_number} : performing linear regression for {index}")
     Y = np.array(row.values).reshape(-1, 1)
-    model = OLS(Y, X)
+    model = OLS(Y, aug_X)
     results = model.fit()
     print(results.summary())
+    print(results.pvalues)
     # for i, ax in enumerate(axes.flatten()):
-    #     if i < X.shape[1] - 1:  # Make sure we don't exceed the number of features
-    #         x = X[:, i]
+    #     if i < aug_X.shape[1] - 1:  # Make sure we don't exceed the number of features
+    #         x = aug_X[:, i]
     #         ax.plot(x, Y, marker='o', linestyle='None')
     #         for n, label in enumerate(labels):
     #             ax.text(x[n], Y[n], label, ha='right')
@@ -97,7 +102,73 @@ for index, row in spike_rates_zombies.iterrows():
     #         ax.set_ylabel('Average spike rate')
     #         ax.set_xlabel(f'{feature_names[i]}')
 
-    plt.tight_layout()  # Adjust layout to prevent overlap
+    # plt.tight_layout()  # Adjust layout to prevent overlap
+    # plt.show()
+
+
+''' Looking at each neuron two features at a time'''
+# date = "2023-10-04"
+# round_number = 3
+# spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round_number)
+# spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
+# print(spike_rates_zombies.head())
+# labels = spike_rates_zombies.columns.tolist()
+'''
+# fit 2 features at a time
+num_features = X.shape[1]
+feature_combinations = list(combinations(range(num_features), 2))
+
+for index, row in spike_rates_zombies.iterrows():
+    print(f"{date} round number {round_number} : performing linear regression for {index}")
+    Y = np.array(row.values).reshape(-1, 1)
+    fig = plt.figure(figsize=(12, 14))
+    fig.suptitle(f"{date} Round #{round_number}: {index}")
+    for idx, (feat1_idx, feat2_idx) in enumerate(feature_combinations):
+        # Extract features
+        X_subset = X[:, [feat1_idx, feat2_idx]]
+        X_subset_adj = np.hstack((X_subset, np.ones((X_subset.shape[0], 1))))
+        # Fit the model
+        model = OLS(Y, X_subset_adj)
+        results = model.fit()
+        formatted_coeffs = ", ".join([f"{param:.2f}" for param in results.params])
+
+        ax = fig.add_subplot(2, 3, idx+1, projection='3d')
+        ax.scatter(X_subset_adj[:, 0], X_subset_adj[:, 1], Y)
+        # Plot the regression plane
+        x_surf = np.linspace(X_subset_adj[:, 0].min(), X_subset_adj[:, 0].max(), 100)
+        y_surf = np.linspace(X_subset_adj[:, 1].min(), X_subset_adj[:, 1].max(), 100)
+        x_surf, y_surf = np.meshgrid(x_surf, y_surf)
+        exog = np.column_stack((x_surf.flatten(), y_surf.flatten(), np.ones(x_surf.flatten().shape)))
+        out = results.predict(exog)
+        ax.plot_surface(x_surf, y_surf, out.reshape(x_surf.shape), color='None', alpha=0.5)
+        ax.text(0.05, 0.05, 0.05, f"R-squared: {results.rsquared:.2f} Coeff: {formatted_coeffs}", transform=ax.transAxes,
+                verticalalignment='bottom', horizontalalignment='left', fontsize=8, color='blue')
+    plt.show()
+'''
+# fit 1 feature at a time
+for index, row in spike_rates_zombies.iterrows():
+    print(f"{date} round number {round_number} : performing linear regression for {index}")
+    Y = np.array(row.values).reshape(-1, 1)
+    fig = plt.figure(figsize=(12, 14))
+    fig.suptitle(f"{date} Round #{round_number}: {index}")
+    for col_index in range(X.shape[1]):
+        column = X[:, col_index].reshape(-1, 1)
+        augmented_X = np.hstack((column, np.ones((column.shape[0], 1))))
+        model = OLS(Y, augmented_X)
+        results = model.fit()
+        ax = fig.add_subplot(2, 2, col_index+1)
+        ax.scatter(augmented_X[:, 0], Y)
+        x = augmented_X[:, 0]
+        # Draw the fitted line
+        x_fit = np.linspace(min(augmented_X[:, 0]), max(augmented_X[:, 0]), 100)
+        y_fit = results.predict(np.column_stack((x_fit, np.ones_like(x_fit))))
+        ax.plot(x_fit, y_fit, color='red', label='Fitted Line')
+        for n, label in enumerate(labels):
+            ax.text(x[n], Y[n], label, ha='right', fontsize=7)
+        ax.set_xlabel(f"{feature_names[col_index]}")
+        ax.set_ylabel(f"Average Firing Rate")
+        ax.set_title(f"R-squared: {results.rsquared:.2f}, p-value {results.pvalues[0]:.6f}")
+        print(results.summary())
     plt.show()
 
 ''' Looking at individual trial '''
