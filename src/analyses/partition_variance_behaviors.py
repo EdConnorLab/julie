@@ -28,7 +28,7 @@ np.fill_diagonal(RSm_n, 0)
 beh_final = pd.DataFrame(RSm_n, columns=beh.columns)
 print(beh_final)  # this table is RSm->n
 
-# Get 81G
+# Get 4 feature dimensions
 attraction_to_submission_81G = beh_final.iloc[:, 6]
 submission_by_81G = pd.Series(beh_final.iloc[6, :].values)
 general_submission = Sm_arrow
@@ -43,7 +43,7 @@ combined_df = pd.concat([attraction_to_submission_81G, submission_by_81G, genera
                               'general_attraction_to_submission'])
 combined_df.reset_index(drop=True, inplace=True)
 numeric_array = combined_df.values
-X = np.delete(numeric_array, 6, axis=0)
+X = np.delete(numeric_array, 6, axis=0)  # delete information on 81G
 
 
 zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
@@ -74,36 +74,72 @@ zombies_df = pd.DataFrame({'Focal Name': zombies})
 # print(results.summary())
 
 ''' Looking at each neuron '''
-date = "2023-09-29"
-round_number = 2
+date = "2023-09-26"
+round_number = 1
 spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round_number)
 spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
 print(spike_rates_zombies.head())
 labels = spike_rates_zombies.columns.tolist()
 print(f'Labels: {labels}')
-labels = ['Z_M1', 'Z_F1', 'Z_F2', 'Z_F3', 'Z_F4', 'Z_F5', 'Z_F7', 'Z_J1', 'Z_J2']
+# labels = ['Z_M1', 'Z_F1', 'Z_F2', 'Z_F3', 'Z_F4', 'Z_F5', 'Z_F7', 'Z_J1', 'Z_J2']
 aug_X = np.hstack((X, np.ones((X.shape[0], 1))))
 
-for index, row in spike_rates_zombies.iterrows():
-    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
-    print(f"LOOKING AT EACH NEURON: {date} round number {round_number} : performing linear regression for {index}")
-    Y = np.array(row.values).reshape(-1, 1)
-    model = OLS(Y, aug_X)
-    results = model.fit()
-    print(results.summary())
-    print(results.pvalues)
-    # for i, ax in enumerate(axes.flatten()):
-    #     if i < aug_X.shape[1] - 1:  # Make sure we don't exceed the number of features
-    #         x = aug_X[:, i]
-    #         ax.plot(x, Y, marker='o', linestyle='None')
-    #         for n, label in enumerate(labels):
-    #             ax.text(x[n], Y[n], label, ha='right')
-    #         ax.set_title(f"{date} Round No.{round_number} -- Neuron from {index}")
-    #         ax.set_ylabel('Average spike rate')
-    #         ax.set_xlabel(f'{feature_names[i]}')
+# for index, row in spike_rates_zombies.iterrows():
+#     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+#     print(f"LOOKING AT EACH NEURON: {date} round number {round_number} : performing linear regression for {index}")
+#     Y = np.array(row.values).reshape(-1, 1)
+#     model = OLS(Y, aug_X)
+#     results = model.fit()
+#     print(results.summary())
+#     print(results.pvalues)
+#     for i, ax in enumerate(axes.flatten()):
+#         if i < aug_X.shape[1] - 1:  # Make sure we don't exceed the number of features
+#             x = aug_X[:, i]
+#             ax.plot(x, Y, marker='o', linestyle='None')
+#             for n, label in enumerate(labels):
+#                 ax.text(x[n], Y[n], label, ha='right')
+#             ax.set_title(f"{date} Round No.{round_number} -- Neuron from {index}")
+#             ax.set_ylabel('Average spike rate')
+#             ax.set_xlabel(f'{feature_names[i]}')
+#
+#     plt.tight_layout()  # Adjust layout to prevent overlap
+#     plt.show()
 
-    # plt.tight_layout()  # Adjust layout to prevent overlap
-    # plt.show()
+# fit 1 feature at a time
+all_results_df = pd.DataFrame()
+for index, row in spike_rates_zombies.iterrows():
+    print(f"{date} round number {round_number} : performing linear regression for {index}")
+    Y = np.array(row.values).reshape(-1, 1)
+    fig = plt.figure(figsize=(12, 14))
+    fig.suptitle(f"{date} Round #{round_number}: {index}")
+    all_stat_params = []
+    for col_index in range(X.shape[1]):
+        column = X[:, col_index].reshape(-1, 1)
+        augmented_X = np.hstack((column, np.ones((column.shape[0], 1))))
+        model = OLS(Y, augmented_X)
+        results = model.fit()
+        print(results.summary())
+        stat_params_to_be_saved = [date, round_number, index, feature_names[col_index], results.rsquared, results.pvalues[0]]
+        all_stat_params.append(stat_params_to_be_saved)
+
+        # ax = fig.add_subplot(2, 2, col_index+1)
+        # ax.scatter(augmented_X[:, 0], Y)
+        # x = augmented_X[:, 0]
+        # # Draw the fitted line
+        # x_fit = np.linspace(min(augmented_X[:, 0]), max(augmented_X[:, 0]), 100)
+        # y_fit = results.predict(np.column_stack((x_fit, np.ones_like(x_fit))))
+        # ax.plot(x_fit, y_fit, color='red', label='Fitted Line')
+        # for n, label in enumerate(labels):
+        #     ax.text(x[n], Y[n], label, ha='right', fontsize=7)
+        # ax.set_xlabel(f"{feature_names[col_index]}")
+        # ax.set_ylabel(f"Average Firing Rate")
+        # ax.set_title(f"R-squared: {results.rsquared:.2f}, p-value {results.pvalues[0]:.6f}")
+
+    results_df = pd.DataFrame(all_stat_params, columns=['Date', 'Round', 'Neuron', 'Feature Name', 'R-squared', 'p-value'])
+    all_results_df = pd.concat([all_results_df, results_df], ignore_index=True)
+    all_results_df.to_excel('/home/connorlab/Documents/GitHub/Julie/linear_regression_results/single_feature_results.xlsx', index=False)
+    plt.show()
+
 
 
 ''' Looking at each neuron two features at a time'''
@@ -145,31 +181,6 @@ for index, row in spike_rates_zombies.iterrows():
                 verticalalignment='bottom', horizontalalignment='left', fontsize=8, color='blue')
     plt.show()
 '''
-# fit 1 feature at a time
-for index, row in spike_rates_zombies.iterrows():
-    print(f"{date} round number {round_number} : performing linear regression for {index}")
-    Y = np.array(row.values).reshape(-1, 1)
-    fig = plt.figure(figsize=(12, 14))
-    fig.suptitle(f"{date} Round #{round_number}: {index}")
-    for col_index in range(X.shape[1]):
-        column = X[:, col_index].reshape(-1, 1)
-        augmented_X = np.hstack((column, np.ones((column.shape[0], 1))))
-        model = OLS(Y, augmented_X)
-        results = model.fit()
-        ax = fig.add_subplot(2, 2, col_index+1)
-        ax.scatter(augmented_X[:, 0], Y)
-        x = augmented_X[:, 0]
-        # Draw the fitted line
-        x_fit = np.linspace(min(augmented_X[:, 0]), max(augmented_X[:, 0]), 100)
-        y_fit = results.predict(np.column_stack((x_fit, np.ones_like(x_fit))))
-        ax.plot(x_fit, y_fit, color='red', label='Fitted Line')
-        for n, label in enumerate(labels):
-            ax.text(x[n], Y[n], label, ha='right', fontsize=7)
-        ax.set_xlabel(f"{feature_names[col_index]}")
-        ax.set_ylabel(f"Average Firing Rate")
-        ax.set_title(f"R-squared: {results.rsquared:.2f}, p-value {results.pvalues[0]:.6f}")
-        print(results.summary())
-    plt.show()
 
 ''' Looking at individual trial '''
 # spike_rates = spike_rate_analysis.get_spike_rates_for_each_trial("2023-10-04", 3)
