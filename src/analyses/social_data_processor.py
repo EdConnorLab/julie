@@ -77,6 +77,46 @@ def generate_edge_list_from_pairwise_interactions(interaction_df):
     return edge_list
 
 
+def partition_behavior_variance_from_excel_file(file_name):
+    excel_data_reader = ExcelDataReader(file_name=file_name)
+    beh = excel_data_reader.get_first_sheet()
+    beh = beh.iloc[:, 1:]  # extract only the values
+    beh_final, Sm_arrow_values, Sarrow_m_values = partition_behavior_variance(beh)
+    return beh_final, Sm_arrow_values, Sarrow_m_values
+
+
+def partition_behavior_variance(beh: pd.DataFrame):
+    Sm_arrow = beh.sum(axis=1) / (beh.shape[1] - 1)  # average frequency of the monkey m submitting to other monkeys
+    Sarrow_m = beh.sum(axis=0) / (beh.shape[0] - 1)  # average frequency of other monkeys submitting to the monkey m
+
+    sum_Sm_arrow = Sm_arrow.sum()  # this should be the same as sum_Sarrow_m = Sarrow_m.sum()
+
+    Sm_arrow_values = Sm_arrow.values.reshape(-1, 1)
+    Sarrow_m_values = Sarrow_m.values.reshape(-1, 1)
+
+    RSm_n = beh.values - ((Sm_arrow_values * Sarrow_m_values.T) / sum_Sm_arrow)
+    np.fill_diagonal(RSm_n, 0)
+    beh_final = pd.DataFrame(RSm_n, columns=beh.columns)
+    # print(beh_final)  # this table is RSm->n
+    return beh_final, Sm_arrow_values, Sarrow_m_values
+
+
+def generate_feature_matrix_from_edge_list(edge_list, monkey_group):
+    feature_df = pd.DataFrame({'Focal Name': monkey_group})
+    for monkey in monkey_group:
+        fill_in = pd.DataFrame({'Focal Name': monkey_group, 'Social Modifier': monkey, 'weight': 0})
+        dim = edge_list[edge_list['Social Modifier'] == monkey]
+        one_dim = pd.merge(fill_in, dim, how='left', on=['Focal Name', 'Social Modifier'])
+        one_dim['weight'] = (one_dim['weight_x'] + one_dim['weight_y']).fillna(0)
+        one_dim.drop(['weight_x','weight_y'], axis=1, inplace=True)
+        one_dim['weight'] = one_dim['weight'].astype(int)
+        one_dim.rename(columns={'weight': f'Behavior Towards {monkey}'}, inplace=True)
+        one_dim.drop('Social Modifier', axis=1, inplace=True)
+        feature_df = pd.merge(feature_df, one_dim, on='Focal Name')
+    return feature_df
+
+
+
 if __name__ == '__main__':
 
     social_data = SocialDataReader().social_data
@@ -102,28 +142,7 @@ if __name__ == '__main__':
     genealogy_data['Focal Name'] = genealogy_data['Focal Name'].astype(str)
 
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
-
-    zombies_df = pd.DataFrame({'Focal Name': zombies})
-    temp = pd.DataFrame({'Focal Name': zombies})
-
-    feature_df = genealogy_data.copy(deep=True)
-    for zombie in zombies:
-        fill_in = pd.DataFrame({'Focal Name': zombies, 'Social Modifier': zombie, 'weight': 0})
-        dim = edge_list_agon[edge_list_agon['Social Modifier'] == zombie]
-        one_dim = pd.merge(fill_in, dim, how='left', on=['Focal Name', 'Social Modifier'])
-        one_dim['weight'] = (one_dim['weight_x'] + one_dim['weight_y']).fillna(0)
-        one_dim.drop(['weight_x','weight_y'], axis=1, inplace=True)
-        one_dim['weight'] = one_dim['weight'].astype(int)
-        one_dim.rename(columns={'weight': f'Agonistic Behavior Towards {zombie}'}, inplace=True)
-        one_dim.drop('Social Modifier', axis=1, inplace=True)
-        temp = pd.merge(temp, one_dim, on='Focal Name')
-    cols_to_normalize = temp.select_dtypes(include='int64').columns[1:]
-    # Normalize selected columns
-    normalized_cols = temp[cols_to_normalize] / temp[cols_to_normalize].max()
-    # Concatenate normalized columns with the first column and non-integer columns
-    normalized_df = pd.concat([temp.iloc[:, 0], normalized_cols, temp.select_dtypes(exclude='int64')], axis=1)
-    feature_df = temp.copy(deep=True)
-    #feature_df = pd.merge(feature_df, temp, on='Focal Name')
+    matrix = generate_feature_matrix_from_edge_list(edge_list_agon, zombies)
 
     # Normalize
     # cols_to_normalize = feature_df.select_dtypes(include='int64').columns[1:]
@@ -132,13 +151,13 @@ if __name__ == '__main__':
     # print(normalized_df.shape)
 
     # Get only numbers
-    numeric_columns = normalized_df.iloc[:, 1:-1]
+    # numeric_columns = normalized_df.iloc[:, 1:-1]
     # Convert selected numeric columns to a NumPy array
-    numeric_array = numeric_columns.values
-    # Append a column of 1s to the array to represent the last column
-    numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
-    # Compute pseudoinverse of the resulting array
-    X = numeric_array_with_ones
+    # numeric_array = numeric_columns.values
+    # # Append a column of 1s to the array to represent the last column
+    # numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
+    # # Compute pseudoinverse of the resulting array
+    # X = numeric_array_with_ones
 
 
     # Get Spike Rate -- Y
@@ -146,26 +165,26 @@ if __name__ == '__main__':
     #ER_population_spike_rate = spike_rate_analysis.compute_population_spike_rates_for_ER()
     population_spike_rate = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
     print("population spike rate")
-    print(population_spike_rate)
-    matching_indices = zombies_df['Focal Name'].isin(population_spike_rate.index)
-    matching_rows = population_spike_rate.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
-    spike_rate_df = matching_rows.to_frame(name='Spike Rates')
-    spike_rate_df['Focal Name'] = spike_rate_df.index
-    spike_rate_df = pd.merge(zombies_df, spike_rate_df, on='Focal Name', how='left').fillna(0)
-
-    # Extract values from a column as a NumPy array
-    column_values = spike_rate_df['Spike Rates'].values
-    # Convert the column values to a column matrix
-    Y = column_values.reshape(-1, 1)
-
-    lr = LinearRegression(fit_intercept=False)
-    lr.fit(numeric_array, Y)
-
-    print('coeff')
-    print(lr.coef_)
-    model = OLS(Y, X)
-    results = model.fit()
-    print(results.summary())
+    # print(population_spike_rate)
+    # matching_indices = zombies_df['Focal Name'].isin(population_spike_rate.index)
+    # matching_rows = population_spike_rate.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
+    # spike_rate_df = matching_rows.to_frame(name='Spike Rates')
+    # spike_rate_df['Focal Name'] = spike_rate_df.index
+    # spike_rate_df = pd.merge(zombies_df, spike_rate_df, on='Focal Name', how='left').fillna(0)
+    #
+    # # Extract values from a column as a NumPy array
+    # column_values = spike_rate_df['Spike Rates'].values
+    # # Convert the column values to a column matrix
+    # Y = column_values.reshape(-1, 1)
+    #
+    # lr = LinearRegression(fit_intercept=False)
+    # lr.fit(numeric_array, Y)
+    #
+    # print('coeff')
+    # print(lr.coef_)
+    # model = OLS(Y, X)
+    # results = model.fit()
+    # print(results.summary())
 
     # submissive_behavior_list = list(Submissive)
     # submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)
