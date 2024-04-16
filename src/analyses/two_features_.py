@@ -1,4 +1,20 @@
-# '''
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from itertools import combinations
+from statsmodels.regression.linear_model import OLS
+
+import spike_rate_analysis
+from recording_metadata_reader import RecordingMetadataReader
+
+# zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+# metadata_reader = RecordingMetadataReader()
+# raw_metadata = metadata_reader.get_raw_data()
+# metadata_for_regression = raw_metadata.parse('InitialRegression')
+#
+# # Construct X
+#
 # # fit 2 features at a time
 # num_features = X.shape[1]
 # feature_combinations = list(combinations(range(num_features), 2))
@@ -52,4 +68,3 @@
 # final_df = pd.DataFrame(all_results, columns=['Date', 'Round', 'Neuron', 'Feature Names', 'R-squared',
 #                                              'p-value1', 'p-value2', 'coefficients'])
 # final_df.to_excel('/home/connorlab/Documents/GitHub/Julie/linear_regression_results/two_feature_results.xlsx', index=False)
-# '''

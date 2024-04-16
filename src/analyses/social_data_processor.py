@@ -1,10 +1,8 @@
 import pandas as pd
 import numpy as np
-from statsmodels.regression.linear_model import OLS
 
 from excel_data_reader import ExcelDataReader
 from social_data_reader import SocialDataReader
-from sklearn.linear_model import LinearRegression
 
 from behaviors import AgonisticBehaviors as Agonistic
 from behaviors import SubmissiveBehaviors as Submissive
@@ -98,7 +96,7 @@ def partition_behavior_variance(beh: pd.DataFrame):
     np.fill_diagonal(RSm_n, 0)
     beh_final = pd.DataFrame(RSm_n, columns=beh.columns)
     # print(beh_final)  # this table is RSm->n
-    return beh_final, Sm_arrow_values, Sarrow_m_values
+    return beh_final, Sm_arrow, Sarrow_m
 
 
 def generate_feature_matrix_from_edge_list(edge_list, monkey_group):
@@ -108,7 +106,7 @@ def generate_feature_matrix_from_edge_list(edge_list, monkey_group):
         dim = edge_list[edge_list['Social Modifier'] == monkey]
         one_dim = pd.merge(fill_in, dim, how='left', on=['Focal Name', 'Social Modifier'])
         one_dim['weight'] = (one_dim['weight_x'] + one_dim['weight_y']).fillna(0)
-        one_dim.drop(['weight_x','weight_y'], axis=1, inplace=True)
+        one_dim.drop(['weight_x', 'weight_y'], axis=1, inplace=True)
         one_dim['weight'] = one_dim['weight'].astype(int)
         one_dim.rename(columns={'weight': f'Behavior Towards {monkey}'}, inplace=True)
         one_dim.drop('Social Modifier', axis=1, inplace=True)

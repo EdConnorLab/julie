@@ -45,26 +45,6 @@ from monkey_names import Monkey
 # # labels = ['Z_M1', 'Z_F1', 'Z_F2', 'Z_F3', 'Z_F4', 'Z_F5', 'Z_F7', 'Z_J1', 'Z_J2']
 # aug_X = np.hstack((X, np.ones((X.shape[0], 1))))
 #
-# # for index, row in spike_rates_zombies.iterrows():
-# #     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
-# #     print(f"LOOKING AT EACH NEURON: {date} round number {round_number} : performing linear regression for {index}")
-# #     Y = np.array(row.values).reshape(-1, 1)
-# #     model = OLS(Y, aug_X)
-# #     results = model.fit()
-# #     print(results.summary())
-# #     print(results.pvalues)
-# #     for i, ax in enumerate(axes.flatten()):
-# #         if i < aug_X.shape[1] - 1:  # Make sure we don't exceed the number of features
-# #             x = aug_X[:, i]
-# #             ax.plot(x, Y, marker='o', linestyle='None')
-# #             for n, label in enumerate(labels):
-# #                 ax.text(x[n], Y[n], label, ha='right')
-# #             ax.set_title(f"{date} Round No.{round_number} -- Neuron from {index}")
-# #             ax.set_ylabel('Average spike rate')
-# #             ax.set_xlabel(f'{feature_names[i]}')
-# #
-# #     plt.tight_layout()  # Adjust layout to prevent overlap
-# #     plt.show()
 #
 # # fit 1 feature at a time
 # all_results_df = pd.DataFrame()
