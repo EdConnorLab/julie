@@ -42,8 +42,8 @@ def get_spike_rates_for_each_trial(date, round_number):
     else:
         spike_rates = raw_data_spike_rates
 
-    print('-------------------- spike rates for each trial --------------------')
-    print(spike_rates)
+    # print('-------------------- spike rates for each trial --------------------')
+    # print(spike_rates)
     return spike_rates
 
 
@@ -79,8 +79,8 @@ def get_average_spike_rates_for_each_monkey(date, round_number):
     else:
         average_spike_rates = average_spike_rates_from_raw_data
 
-    print('-------------------- average spike rates for each monkey ---------------------')
-    print(average_spike_rates)
+    # print('-------------------- average spike rates for each monkey ---------------------')
+    # print(average_spike_rates)
 
     return average_spike_rates
 
