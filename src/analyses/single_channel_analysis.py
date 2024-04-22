@@ -275,6 +275,31 @@ def plot_average_among_groups(channel_data, channel):
     return fig
 
 
+def get_spike_count(spikes: list, time_range: tuple) -> int:
+    """
+    Get the spike count between two timestamps.
+
+    Parameters:
+        spikes (list): List of spike timestamps.
+        time_range (tuple): Tuple containing start_time and end_time.
+
+    Returns:
+        int: Spike count.
+    """
+    if not spikes or time_range[0] >= time_range[1]:
+        return 0
+
+    start_time, end_time = time_range
+    spikes_in_range = [spike for spike in spikes if start_time <= spike < end_time]
+    spike_count = len(spikes_in_range)
+    duration = end_time - start_time
+
+    if duration == 0:
+        return 0
+
+    return spike_count
+
+
 def calculate_spike_rate(spikes: list, time_range: tuple) -> float:
     """
     Calculate the spike rate between two timestamps.
