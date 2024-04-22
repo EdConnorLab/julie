@@ -25,15 +25,16 @@ def construct_feature_matrix(beh, Sm_arrow, Sarrow_m, behavior_type):
     feature_matrix = np.delete(feat.values, 6, axis=0)  # delete information on 81G
     return feature_matrix, feature_names
 
-def get_metadata_for_regression():
+
+def get_metadata_for_preliminary_analysis():
     metadata_reader = RecordingMetadataReader()
     raw_metadata = metadata_reader.get_raw_data()
-    metadata_for_regression = raw_metadata.parse('InitialRegression')
+    metadata_for_prelim_analysis = raw_metadata.parse('InitialRegression')
 
-    return metadata_for_regression
+    return metadata_for_prelim_analysis
+
 
 def run_single_feature_linear_regression_analysis(X, metadata_for_regression, feature_names, behavior_type):
-    # SINGLE FEATURE
     all_results = []
     cell_count = 0
     for index, row in metadata_for_regression.iterrows():
@@ -86,7 +87,7 @@ def run_single_feature_linear_regression_analysis(X, metadata_for_regression, fe
 
 
 def generate_r_squared_histogram_for_specific_population(X, feature_names, location):
-    metadata = get_metadata_for_regression()
+    metadata = get_metadata_for_preliminary_analysis()
     neural_population = metadata[metadata['Location'] == location]
     stat_param_list = []
     for index, row in neural_population.iterrows():
@@ -122,7 +123,7 @@ if __name__ == '__main__':
     '''
     # Get all experimental round information
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
-    metadata_for_regression = get_metadata_for_regression()
+    metadata_for_regression = get_metadata_for_preliminary_analysis()
 
     agon_beh, Sm_arrow_agon, Sarrow_m_agon = social_data_processor.partition_behavior_variance_from_excel_file(
         'feature_df_agonism.xlsx')
@@ -139,37 +140,36 @@ if __name__ == '__main__':
     # run_single_feature_linear_regression_analysis(X_sub, metadata_for_regression, sub_feature_names, 'submission')
     # run_single_feature_linear_regression_analysis(X_aff, metadata_for_regression, aff_feature_names, 'affiliation')
 
-
-    '''
-    
+    """
     Generating R-squared histograms
     
-    '''
-    location = 'Amygdala'
-    agon_df = generate_r_squared_histogram_for_specific_population(X_sub, sub_feature_names, location)
-    agon_sorted = agon_df.sort_values(by='R-squared', ascending=False)
-    fig, axs = plt.subplots(2, 2, figsize=(12, 12))
-    fig.suptitle(f"R-squared values for Submission in {location}", fontsize=16)
-    axs = axs.flatten()
-    plot_number = 0
+    """
 
-    for feature_name, group in agon_sorted.groupby('Feature Name'):
-        filtered_group = group[group['R-squared'] > 0.1]
-
-        if not filtered_group.empty and plot_number < 4:
-            ax = axs[plot_number]
-            data = filtered_group['R-squared']
-            counts, bins, patches = ax.hist(data, bins=20)
-            top_20_percent = np.percentile(data, 80)
-            for count, bin, patch in zip(counts, bins, patches):
-                if bin >= top_20_percent:
-                    patch.set_facecolor('red')
-            ax.set_title(f'{feature_name}', fontsize=10)
-            ax.set_xlabel('R-squared')
-            ax.set_ylabel('Number of Cells')
-            ax.grid(False)
-            plot_number += 1
-
-    plt.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/single_feature_r_squared_histograms/{location}_Submission_marked')
-    plt.show()
+    # location = 'Amygdala'
+    # agon_df = generate_r_squared_histogram_for_specific_population(X_sub, sub_feature_names, location)
+    # agon_sorted = agon_df.sort_values(by='R-squared', ascending=False)
+    # fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+    # fig.suptitle(f"R-squared values for Submission in {location}", fontsize=16)
+    # axs = axs.flatten()
+    # plot_number = 0
+    #
+    # for feature_name, group in agon_sorted.groupby('Feature Name'):
+    #     filtered_group = group[group['R-squared'] > 0.1]
+    #
+    #     if not filtered_group.empty and plot_number < 4:
+    #         ax = axs[plot_number]
+    #         data = filtered_group['R-squared']
+    #         counts, bins, patches = ax.hist(data, bins=20)
+    #         top_20_percent = np.percentile(data, 80)
+    #         for count, bin, patch in zip(counts, bins, patches):
+    #             if bin >= top_20_percent:
+    #                 patch.set_facecolor('red')
+    #         ax.set_title(f'{feature_name}', fontsize=10)
+    #         ax.set_xlabel('R-squared')
+    #         ax.set_ylabel('Number of Cells')
+    #         ax.grid(False)
+    #         plot_number += 1
+    #
+    # plt.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/single_feature_r_squared_histograms/{location}_Submission_marked')
+    # plt.show()
 
