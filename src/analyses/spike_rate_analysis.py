@@ -12,6 +12,10 @@ from recording_metadata_reader import RecordingMetadataReader
 
 
 def get_spike_rates_for_each_trial(date, round_number):
+    """
+    Computes spike rates for each trial for a given experimental round
+
+    """
     metadata_reader = RecordingMetadataReader()
     pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
     compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
@@ -46,8 +50,17 @@ def get_spike_rates_for_each_trial(date, round_number):
     # print(spike_rates)
     return spike_rates
 
-
 def get_average_spike_rates_for_each_monkey(date, round_number):
+    """
+    Computes average spike rates for each monkey photo -- spike rates are averaged over 10 trials
+
+    Parameters:
+        date (str): the date of the experimental round (e.g. '2023-10-03')
+        round_number (int): the experimental round number
+
+    Returns:
+        average spike rates across 10 trials for each monkey
+    """
     metadata_reader = RecordingMetadataReader()
     pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
     compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()

@@ -124,7 +124,7 @@ if __name__ == '__main__':
     # Counting specific behaviors and saving the data table as excel
     # agon_behavior_specific_count = agon.groupby('Behavior').apply(lambda x: x.groupby(['Focal Name', 'Social Modifier']).size()).reset_index(name='Count')
     # agon_behavior_specific_count.columns = ['Behavior', 'Actor', 'Receiver', 'Count']
-    # agon_behavior_specific_count.to_excel('agonism_frequency_of_specific_behavior.xlsx')
+    # agon_behavior_specific_count.to_excel('frequency_of_specific_behavior_agonism.xlsx')
     edge_list_agon = generate_edge_list_from_extracted_interactions(agon)
 
     # Submissive
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     # Counting specific behaviors and saving the data table as excel
     # sub_behavior_specific_count = sub.groupby('Behavior').apply(lambda x: x.groupby(['Focal Name', 'Social Modifier']).size()).reset_index(name='Count')
     # sub_behavior_specific_count.columns = ['Behavior', 'Actor', 'Receiver', 'Count']
-    # sub_behavior_specific_count.to_excel('submission_frequency_of_specific_behavior.xlsx')
+    # sub_behavior_specific_count.to_excel('frequency_of_specific_behavior_submission.xlsx')
     edge_list_sub = generate_edge_list_from_extracted_interactions(sub)
 
     # Affiliative
@@ -142,7 +142,7 @@ if __name__ == '__main__':
     # Counting specific behaviors and saving the data table as excel
     # aff_behavior_specific_count = aff.groupby('Behavior').apply(lambda x: x.groupby(['Focal Name', 'Social Modifier']).size()).reset_index(name='Count')
     # aff_behavior_specific_count.columns = ['Behavior', 'Actor', 'Receiver', 'Count']
-    # aff_behavior_specific_count.to_excel('affiliation_frequency_of_specific_behavior.xlsx')
+    # aff_behavior_specific_count.to_excel('frequency_of_specific_behavior_affiliation.xlsx')
     edge_list_aff = generate_edge_list_from_extracted_interactions(aff)
 
     # Get genealogy matrix
