@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+import numpy as np
 import pandas as pd
 from clat.intan.channels import Channel
 
@@ -141,8 +141,34 @@ def perform_anova_on_rows(df):
     return results, significant_results
 
 
-def perform_permutation_anova(df, n_permutations=1000):
-    pass
+def anova_permutation_test(groups, num_permutations=1000):
+    data = np.concatenate(groups)
+    original_group_sizes = [len(group) for group in groups]
+    observed_f_stat, _ = f_oneway(*groups)
+
+    permutation_f_stats = []
+    for _ in range(num_permutations):
+        np.random.shuffle(data)
+        new_groups = np.split(data, np.cumsum(original_group_sizes)[:-1])
+        f_stat, _ = f_oneway(*new_groups)
+        permutation_f_stats.append(f_stat)
+
+    p_value = np.mean([f_stat >= observed_f_stat for f_stat in permutation_f_stats])
+    return observed_f_stat, p_value
+
+
+def perform_anova_permutation_test_on_rows(df, num_permutations=1000):
+    results = []
+    total_sig = 0
+    for index, row in df.iterrows():
+        groups = [np.array(cell) for cell in row if isinstance(cell, list)]
+        f_stat, p_value = anova_permutation_test(groups, num_permutations=num_permutations)
+        results.append((f_stat, p_value))
+        if p_value < 0.05:
+            print(f"Row {index}: F-statistic = {f_stat}, p-value = {p_value}")
+            total_sig += 1
+    return results, total_sig
+
 
 
 if __name__ == '__main__':
@@ -153,9 +179,12 @@ if __name__ == '__main__':
         date = row['Date'].strftime('%Y-%m-%d')
         round_no = row['Round No.']
         spike_count_dataframe = get_spike_count_for_each_trial(date, round_no)
-        anova_results, sig_results = perform_anova_on_rows(spike_count_dataframe)
+        # anova_results, sig_results = perform_anova_on_rows(spike_count_dataframe)
+        results, sig = perform_anova_permutation_test_on_rows(spike_count_dataframe, num_permutations=1000)
+        total_sig_cells = total_sig_cells + sig
         # print(f'For {date} Round No. {round_no}')
-        all_significant_results.extend(sig_results)
-        results_df = pd.DataFrame(all_significant_results, columns=['Date', 'Round No.', 'Cell', 'P-Value'])
+        # all_significant_results.extend(sig_results)
+        # results_df = pd.DataFrame(all_significant_results, columns=['Date', 'Round No.', 'Cell', 'P-Value'])
         # results_file_path = 'significant_anova_results.xlsx'
         # results_df.to_excel(results_file_path, index=False)
+    print(total_sig_cells)
