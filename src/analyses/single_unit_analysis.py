@@ -28,7 +28,7 @@ def main():
     sample_rate = load_intan_rhd_format.read_data(rhd_file_path)["frequency_parameters"]['amplifier_sample_rate']
     sorted_data = calculate_spike_timestamps(raw_trial_data, sorted_spikes, sample_rate)
 
-    for unit, data in raw_trial_data['SpikeTimes'][0].items():
+    for unit, data in sorted_data['SpikeTimes'][0].items():
         plot_raster_for_monkeys(sorted_data, unit, experiment_name=experiment_name)
     # plt.show()
 
@@ -127,7 +127,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
     plt.subplots_adjust(hspace=1.0, wspace=1.0)
     plt.show()
     ## SAVE PLOTS
-    base_save_dir = "/home/connorlab/Documents/GitHub/Julie/plots"
+    base_save_dir = "/raster_plots"
     if experiment_name is not None:
         save_dir = os.path.join(base_save_dir, experiment_name)
         os.makedirs(save_dir, exist_ok=True)
@@ -135,8 +135,8 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
         # Save individual plot
         individual_save_path_png = os.path.join(save_dir, f"{experiment_name}_{unit}_sorted_raster.png")
         individual_save_path_svg = os.path.join(save_dir, f"{experiment_name}_{unit}_sorted_raster.svg")
-        fig.savefig(individual_save_path_svg)
-        # fig.savefig(individual_save_path_png)
+        # fig.savefig(individual_save_path_svg)
+        fig.savefig(individual_save_path_png)
 
     return fig
 

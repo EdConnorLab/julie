@@ -1,3 +1,4 @@
+import math
 import os
 from pathlib import Path
 import numpy as np
@@ -163,12 +164,12 @@ def perform_anova_permutation_test_on_rows(df, num_permutations=1000):
     for index, row in df.iterrows():
         groups = [np.array(cell) for cell in row if isinstance(cell, list)]
         f_stat, p_value = anova_permutation_test(groups, num_permutations=num_permutations)
-        results.append((f_stat, p_value))
-        if p_value < 0.05:
+        # results.append((f_stat, p_value))
+        if p_value < 0.05 and not math.isnan(f_stat):
+            results.append((index, f_stat, p_value))
             print(f"Row {index}: F-statistic = {f_stat}, p-value = {p_value}")
             total_sig += 1
     return results, total_sig
-
 
 
 if __name__ == '__main__':
@@ -181,10 +182,17 @@ if __name__ == '__main__':
         spike_count_dataframe = get_spike_count_for_each_trial(date, round_no)
         # anova_results, sig_results = perform_anova_on_rows(spike_count_dataframe)
         results, sig = perform_anova_permutation_test_on_rows(spike_count_dataframe, num_permutations=1000)
+        for result in results:
+            index, f_stat, p_value = result
+            to_be_saved = [date, round_no, index, f_stat, p_value]
+            all_significant_results.append(to_be_saved)
         total_sig_cells = total_sig_cells + sig
         # print(f'For {date} Round No. {round_no}')
         # all_significant_results.extend(sig_results)
         # results_df = pd.DataFrame(all_significant_results, columns=['Date', 'Round No.', 'Cell', 'P-Value'])
         # results_file_path = 'significant_anova_results.xlsx'
         # results_df.to_excel(results_file_path, index=False)
+    results_df = pd.DataFrame(all_significant_results, columns=['Date', 'Round No.', 'Cell', 'F-statistics', 'P-Value'])
+    results_file_path = 'significant_anova_results.xlsx'
+    results_df.to_excel(results_file_path, index=False)
     print(total_sig_cells)

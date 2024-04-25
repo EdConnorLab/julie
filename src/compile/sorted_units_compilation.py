@@ -15,7 +15,7 @@ from clat.util.connection import Connection
 
 
 def main():
-    compile_data(experiment_name="1698699440778381_231030_165721_round2",
+    compile_data(experiment_name="231030_round2",
                  day=date(2023, 10, 30))
 
 

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from statsmodels.regression.linear_model import OLS
 
 import social_data_processor
@@ -34,6 +35,56 @@ def get_metadata_for_preliminary_analysis():
     return metadata_for_prelim_analysis
 
 
+def create_overall_plot_for_single_feature_linear_regression_analysis(feature_matrix, response):
+    """
+    Creates 2x2 plot for different behavior types (Agonism, Submission, Affiliation) for each neuron and combine
+    them into one figure -- three 2x2 raster_plots one for each behavior type
+
+    @param feature_matrix:
+    """
+    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+    zombies.remove('81G')
+    fig = plt.figure(figsize=(26, 10))
+    outer_grid = GridSpec(1, 3, figure=fig)
+
+    behavior_types = ['agonism', 'submission', 'affiliation']
+
+    feature_names = [
+        f"{descriptor} {behavior}" for behavior in behavior_types for descriptor in [
+            f"81G's attraction to",
+            f"{behavior} by 81G",
+            f"General",
+            f"General attraction to"
+        ]
+    ]
+    for i in range(len(behavior_types)):
+        inner_grid = GridSpecFromSubplotSpec(2, 2, subplot_spec=outer_grid[i])
+        start_col = i * 4
+        beh_type_specific_feature_mat = feature_matrix[:, start_col:start_col + 4]
+
+        for col_index in range(beh_type_specific_feature_mat.shape[1]):
+            one_feature = beh_type_specific_feature_mat[:, col_index].reshape(-1, 1)
+            augmented_x = np.hstack((one_feature, np.ones((one_feature.shape[0], 1))))
+            model = OLS(response, augmented_x)
+            results = model.fit()
+            ax = plt.Subplot(fig, inner_grid[col_index])
+            x = augmented_x[:, 0]
+            ax.scatter(x, response)
+
+            x_fit = np.linspace(min(x), max(x), 100)
+            y_fit = results.predict(np.column_stack((x_fit, np.ones_like(x_fit))))
+            ax.plot(x_fit, y_fit, color='red')
+            for n, label in enumerate(zombies):
+                ax.text(x[n], response[n], label, ha='right', fontsize=6)
+            # ax.set_xlabel(f"{feature_names[col_index]}")
+            ax.set_ylabel(f"Average Firing Rate")
+            ax.yaxis.set_label_coords(-0.1, 0.5)
+            # ax.set_title(f"R-squared: {results.rsquared:.2f}, p-value {results.pvalues[0]:.6f}")
+            fig.add_subplot(ax)
+    plt.tight_layout(pad=15.0)
+    fig.subplots_adjust(top=0.89, bottom=0.09, left=0.035, right=0.99, hspace=0.19, wspace=0.165)
+    plt.show()
+
 def run_single_feature_linear_regression_analysis(X, metadata_for_regression, feature_names, behavior_type):
     all_results = []
     cell_count = 0
@@ -47,21 +98,21 @@ def run_single_feature_linear_regression_analysis(X, metadata_for_regression, fe
         for ind, zombies_row in spike_rates_zombies.iterrows():
             print(f"{date} round {round_no} : performing linear regression for {ind}")
             Y = np.array(zombies_row.values).reshape(-1, 1)
-            fig = plt.figure(figsize=(14, 14))
+            fig = plt.figure(figsize=(10, 14))
             fig.suptitle(f"{date} Round #{round_no}: {ind}")
             cell_count += 1
             should_save_fig = False  # Initialize the flag
 
             for col_index in range(X.shape[1]):
-                column = X[:, col_index].reshape(-1, 1)
-                augmented_X = np.hstack((column, np.ones((column.shape[0], 1))))
+                one_feature = X[:, col_index].reshape(-1, 1)
+                augmented_X = np.hstack((one_feature, np.ones((one_feature.shape[0], 1))))
                 model = OLS(Y, augmented_X)
                 results = model.fit()
                 ax = fig.add_subplot(2, 2, col_index + 1)
-                ax.scatter(augmented_X[:, 0], Y)
                 x = augmented_X[:, 0]
+                ax.scatter(x, Y)
                 # Draw the fitted line
-                x_fit = np.linspace(min(augmented_X[:, 0]), max(augmented_X[:, 0]), 100)
+                x_fit = np.linspace(min(x), max(x), 100)
                 y_fit = results.predict(np.column_stack((x_fit, np.ones_like(x_fit))))
                 ax.plot(x_fit, y_fit, color='red')
                 for n, label in enumerate(labels):
@@ -70,20 +121,22 @@ def run_single_feature_linear_regression_analysis(X, metadata_for_regression, fe
                 ax.set_ylabel(f"Average Firing Rate")
                 ax.set_title(f"R-squared: {results.rsquared:.2f}, p-value {results.pvalues[0]:.6f}")
                 # print(results.summary())
-            #     if True:  # (results.rsquared > 0.7) and (results.pvalues[0] < 0.05):
-            #         should_save_fig = True
-            #         stat_params_to_be_saved = [date, round_no, ind, feature_names[col_index], results.rsquared,
-            #                                    results.pvalues[0], results.params]
-            #         all_results.append(stat_params_to_be_saved)
-            #
-            # if should_save_fig:
-            #     fig.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/'
-            #                     f'single_feature_plots/{behavior_type}_{date}_round{round_no}_{location}_{ind}.png')
+                if True:  # (results.rsquared > 0.7) and (results.pvalues[0] < 0.05):
+                    should_save_fig = True
+                    stat_params_to_be_saved = [date, round_no, ind, feature_names[col_index], results.rsquared,
+                                               results.pvalues[0], results.params]
+                    all_results.append(stat_params_to_be_saved)
+
+            if should_save_fig:
+                fig.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/'
+                               f'single_feature_plots/{behavior_type}_{date}_round{round_no}_{location}_{ind}.png')
                 # plt.show()
-    # final_df = pd.DataFrame(all_results, columns=['Date', 'Round', 'Neuron', 'Feature Name', 'R-squared',
-    #                                              'p-value', 'coefficients'])
-    # final_df.to_excel(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/single_feature_{behavior_type}.xlsx', index=False)
-    print(f'cell count: {cell_count}')
+    # final_df = pd.DataFrame(all_results, columns=['Date', 'Round No.', 'Cell', 'Feature Name', 'R-squared',
+    #                                               'p-value', 'coefficients'])
+    # final_df.to_excel(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/'
+    #                   f'single_feature_{behavior_type}.xlsx', index=False)
+    # print(f'cell count: {cell_count}')
+    # return fig
 
 
 def generate_r_squared_histogram_for_specific_population(X, feature_names, location):
@@ -116,7 +169,7 @@ def generate_r_squared_histogram_for_specific_population(X, feature_names, locat
 
 if __name__ == '__main__':
     ''' 
-
+    
     Looking at each neuron using average spikes rate over 10 trials
     1D analysis for different types of behaviors (affiliation, submission, aggression)
 
@@ -136,9 +189,15 @@ if __name__ == '__main__':
     X_sub, sub_feature_names = construct_feature_matrix(sub_beh, Sm_arrow_sub, Sarrow_m_sub, 'Submission')
     X_aff, aff_feature_names = construct_feature_matrix(aff_beh, Sm_arrow_aff, Sarrow_m_aff, 'Affiliation')
 
-    # run_single_feature_linear_regression_analysis(X_agon, metadata_for_regression, agon_feature_names, 'agonism')
-    # run_single_feature_linear_regression_analysis(X_sub, metadata_for_regression, sub_feature_names, 'submission')
-    # run_single_feature_linear_regression_analysis(X_aff, metadata_for_regression, aff_feature_names, 'affiliation')
+    # spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey('2023-09-29', 2)
+    # spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
+    # response = np.array(spike_rates_zombies.iloc[0, :].values).reshape(-1, 1)
+    # feature_matrix = np.concatenate((X_agon, X_sub, X_aff), axis=1)
+    # create_overall_plot_for_single_feature_linear_regression_analysis(feature_matrix, response)
+
+    run_single_feature_linear_regression_analysis(X_agon, metadata_for_regression, agon_feature_names, 'agonism')
+    run_single_feature_linear_regression_analysis(X_sub, metadata_for_regression, sub_feature_names, 'submission')
+    run_single_feature_linear_regression_analysis(X_aff, metadata_for_regression, aff_feature_names, 'affiliation')
 
     """
     Generating R-squared histograms
