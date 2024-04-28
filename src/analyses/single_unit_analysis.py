@@ -11,8 +11,8 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    date = "2023-10-30"
-    round = "1698699440778381_231030_165721"
+    date = "2023-10-05"
+    round = "231005_round2"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
     cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
@@ -125,17 +125,19 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
     fig.suptitle(f'Raster Plots for Individual Monkeys: Channel: {unit}')
 
     plt.subplots_adjust(hspace=1.0, wspace=1.0)
+
     plt.show()
     ## SAVE PLOTS
-    base_save_dir = "/raster_plots"
+    base_save_dir = "/home/connorlab/Documents/GitHub/Julie/png_raster_plots/"
     if experiment_name is not None:
         save_dir = os.path.join(base_save_dir, experiment_name)
         os.makedirs(save_dir, exist_ok=True)
 
         # Save individual plot
-        individual_save_path_png = os.path.join(save_dir, f"{experiment_name}_{unit}_sorted_raster.png")
-        individual_save_path_svg = os.path.join(save_dir, f"{experiment_name}_{unit}_sorted_raster.svg")
+        individual_save_path_png = os.path.join(save_dir, f"{experiment_name}_{unit}.png")
+        individual_save_path_svg = os.path.join(save_dir, f"{experiment_name}_{unit}.svg")
         # fig.savefig(individual_save_path_svg)
+        print(f"saving individual plots to {individual_save_path_png}")
         fig.savefig(individual_save_path_png)
 
     return fig

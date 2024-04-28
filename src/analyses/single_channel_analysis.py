@@ -11,7 +11,7 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    experiment_data_filename = "1700677704435485_231122_132825_round1.pk1"
+    experiment_data_filename = "1702587195889919_231214_155316_round4.pk1"
     # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/analyses/"
     # Get the current script directory
     script_dir = Path(__file__).parent
@@ -24,8 +24,8 @@ def main():
 
 
     channels = [
-        Channel.C_019
-    ]
+        Channel.C_006
+        ]
 
     experiment_name = experiment_data_filename.split(".")[0]
     for channel in channels:
@@ -97,11 +97,12 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
 
         # Save individual plot
         individual_save_path_png = os.path.join(save_dir, f"{channel.name}_raster.png")
-        filename = os.path.join(save_dir, f"{channel.name}_raster.svg")
-        individual_save_path_svg = filename
-        print("Saved to : ", os.path.abspath(filename))
-        # fig.savefig(individual_save_path_png)
-        fig.savefig(individual_save_path_svg)
+        # filename = os.path.join(save_dir, f"{channel.name}_raster.svg")
+        #individual_save_path_svg = filename
+        # print("Saved to : ", os.path.abspath(filename))
+        fig.savefig(individual_save_path_png)
+        print(f"Saved to {individual_save_path_png}")
+        # fig.savefig(individual_save_path_svg)
 
     return fig
 
