@@ -50,6 +50,7 @@ def get_spike_rates_for_each_trial(date, round_number):
     # print(spike_rates)
     return spike_rates
 
+
 def get_average_spike_rates_for_each_monkey(date, round_number):
     """
     Computes average spike rates for each monkey photo -- spike rates are averaged over 10 trials
@@ -57,7 +58,6 @@ def get_average_spike_rates_for_each_monkey(date, round_number):
     Parameters:
         date (str): the date of the experimental round (e.g. '2023-10-03')
         round_number (int): the experimental round number
-
     Returns:
         average spike rates across 10 trials for each monkey
     """
@@ -73,7 +73,8 @@ def get_average_spike_rates_for_each_monkey(date, round_number):
     round_path = Path(os.path.join(cortana_path, date, intan_dir))
     valid_channels = set(metadata_reader.get_valid_channels(date, round_number))
 
-    average_spike_rates_from_raw_data = compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels)
+    average_spike_rates_from_raw_data = compute_average_spike_rates_from_raw_trial_data(raw_trial_data,
+                                                                                        valid_channels)
 
     # Check if the experimental round is sorted
     sorted_file = round_path / 'sorted_spikes.pkl'
@@ -129,7 +130,7 @@ def compute_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
     return spike_rate_per_channel
 
 
-def compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels, time_window=None):
+def compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
     # average spike rates for each monkey
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
@@ -141,12 +142,7 @@ def compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channe
             for index, row in monkey_data.iterrows():
                 if is_channel_in_dict(channel, row['SpikeTimes']):
                     data = get_value_from_dict_with_channel(channel, row['SpikeTimes'])
-                    if time_window is not None:
-                        window_start, window_end = time_window
-                        start_time, end_time = row['EpochStartStop']
-                        spike_rates.append(calculate_spike_rate(data,(start_time + window_start, start_time + window_end)))
-                    else:
-                        spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
+                    spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
                 else:
                     print(f"No data for {channel} in row {index}")
 
@@ -157,6 +153,37 @@ def compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channe
         avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
 
     print(avg_spike_rate_by_unit)
+    return avg_spike_rate_by_unit
+
+
+def compute_avg_spike_rate_for_specific_cell(raw_trial_data, cell, time_window):
+    # average spike rates for each monkey
+    unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
+    avg_spike_rate_by_unit = pd.DataFrame(index=[])
+    for monkey in unique_monkeys:
+        monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
+        monkey_specific_spike_rate = {}
+        spike_rates = []
+        for index, row in monkey_data.iterrows():
+            if is_channel_in_dict(cell, row['SpikeTimes']):
+                data = get_value_from_dict_with_channel(cell, row['SpikeTimes'])
+                if time_window is not None:
+                    window_start_micro, window_end_micro = time_window
+                    window_start_sec = window_start_micro * 0.001
+                    window_end_sec = window_end_micro * 0.001
+                    start_time, end_time = row['EpochStartStop']
+                    spike_rates.append(calculate_spike_rate(data, (start_time + window_start_sec, start_time + window_end_sec)))
+                else:
+                    spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
+            else:
+                print(f"No data for {cell} in row {index}")
+
+            avg_spike_rate = sum(spike_rates) / len(spike_rates) if spike_rates else 0
+            monkey_specific_spike_rate[cell] = avg_spike_rate
+
+    # Add monkey-specific spike rates to the DataFrame
+        avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
+
     return avg_spike_rate_by_unit
 
 
@@ -181,7 +208,7 @@ def compute_spike_rates_from_sorted_data(sorted_data):
     return spike_rate_by_unit
 
 
-def compute_average_spike_rates_from_sorted_data(sorted_data, time_window=None):
+def compute_average_spike_rates_from_sorted_data(sorted_data):
     # average spike rates for each monkey
     unique_monkeys = sorted_data['MonkeyName'].dropna().unique().tolist()
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
@@ -197,12 +224,7 @@ def compute_average_spike_rates_from_sorted_data(sorted_data, time_window=None):
             for index, row in monkey_data.iterrows():
                 if is_channel_in_dict(channel, row['SpikeTimes']):
                     data = get_value_from_dict_with_channel(channel, row['SpikeTimes'])
-                    if time_window is not None:
-                        window_start, window_end = time_window
-                        start_time, end_time = row['EpochStartStop']
-                        spike_rates.append(calculate_spike_rate(data,(start_time + window_start, start_time + window_end)))
-                    else:
-                        spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
+                    spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
 
                 else:
                    print(f"No data for {channel} in row {index}")
