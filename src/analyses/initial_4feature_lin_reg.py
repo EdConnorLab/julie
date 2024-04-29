@@ -1,6 +1,10 @@
+from pathlib import Path
+import os
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from clat.intan.channels import Channel
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from statsmodels.regression.linear_model import OLS
 
@@ -8,6 +12,7 @@ import social_data_processor
 import spike_rate_analysis
 from monkey_names import Monkey
 from recording_metadata_reader import RecordingMetadataReader
+from single_channel_analysis import read_pickle
 
 
 def construct_feature_matrix(beh, Sm_arrow, Sarrow_m, behavior_type):
@@ -85,6 +90,43 @@ def create_overall_plot_for_single_feature_linear_regression_analysis(feature_ma
     fig.subplots_adjust(top=0.89, bottom=0.09, left=0.035, right=0.99, hspace=0.19, wspace=0.165)
     plt.show()
 
+
+def run_single_feature_linear_regression_analysis_individual_cells(features, spike_rates, feature_names, behavior_type):
+    for index, row in spike_rates.iterrows():
+        date = row['Date']
+        round_no = row['Round No.']
+        window = row['Time Window']
+        int_window = (int(window[0]), int(window[1]))
+        fig = plt.figure(figsize=(10, 14))
+        fig.suptitle(f"{behavior_type} plots for {date} Round {round_no} {index} for {int_window[0]}ms to {int_window[1]}ms")
+        cleaned_row = row.drop(['Date', 'Round No.', 'Time Window'])
+        labels = cleaned_row.index
+        y = np.array(cleaned_row.values).astype(float).reshape(-1, 1)
+        for col_index in range(features.shape[1]):
+            one_feature = features[:, col_index].reshape(-1, 1)
+            augmented_X = np.hstack((one_feature, np.ones((one_feature.shape[0], 1))))
+            model = OLS(y, augmented_X)
+            results = model.fit()
+            # print(results.summary())
+            ax = fig.add_subplot(2, 2, col_index + 1)
+            x = augmented_X[:, 0]
+            ax.scatter(x, y)
+            # Draw the fitted line
+            x_fit = np.linspace(min(x), max(x), 100)
+            y_fit = results.predict(np.column_stack((x_fit, np.ones_like(x_fit))))
+            ax.plot(x_fit, y_fit, color='red')
+            for n, label in enumerate(labels):
+                ax.text(x[n], y[n], label, ha='right', fontsize=6)
+            ax.set_xlabel(f"{feature_names[col_index]}")
+            ax.set_ylabel(f"Average Firing Rate")
+            ax.set_title(f"R-squared: {results.rsquared:.2f}, p-value {results.pvalues[0]:.6f}")
+
+        # plt.show()
+        fig.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/'
+                        f'time_windowed_cells/{behavior_type}_{date}_round{round_no}_{index} for {int_window}.png')
+        plt.close()
+
+
 def run_single_feature_linear_regression_analysis(X, metadata_for_regression, feature_names, behavior_type):
     all_results = []
     cell_count = 0
@@ -129,7 +171,7 @@ def run_single_feature_linear_regression_analysis(X, metadata_for_regression, fe
 
             if should_save_fig:
                 fig.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/'
-                               f'single_feature_plots/{behavior_type}_{date}_round{round_no}_{location}_{ind}.png')
+                            f'single_feature_plots/{behavior_type}_{date}_round{round_no}_{location}_{ind}.png')
                 # plt.show()
     # final_df = pd.DataFrame(all_results, columns=['Date', 'Round No.', 'Cell', 'Feature Name', 'R-squared',
     #                                               'p-value', 'coefficients'])
@@ -167,16 +209,92 @@ def generate_r_squared_histogram_for_specific_population(X, feature_names, locat
     return results_df
 
 
-if __name__ == '__main__':
-    ''' 
-    
-    Looking at each neuron using average spikes rate over 10 trials
-    1D analysis for different types of behaviors (affiliation, submission, aggression)
+def get_average_spike_rate_for_unsorted_cell_with_time_window(date, round_number, unsorted_cell, time_window):
+    metadata_reader = RecordingMetadataReader()
+    pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
+    compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
+    pickle_filepath = os.path.join(compiled_dir, pickle_filename)
+    print(f'Reading pickle file as raw data: {pickle_filepath}')
+    raw_trial_data = read_pickle(pickle_filepath)
+    average_spike_rate_for_unsorted_cell = (spike_rate_analysis.compute_avg_spike_rate_for_specific_cell
+                                            (raw_trial_data, unsorted_cell, time_window))
+    average_spike_rate_for_unsorted_cell['Date'] = date
+    average_spike_rate_for_unsorted_cell['Round No.'] = round_number
+    average_spike_rate_for_unsorted_cell['Time Window'] = [time_window]
+    return average_spike_rate_for_unsorted_cell
 
-    '''
-    # Get all experimental round information
+def get_average_spike_rate_for_sorted_cell_with_time_window(date, round_number, sorted_cell, time_window):
+    metadata_reader = RecordingMetadataReader()
+    intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
+    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
+    round_path = Path(os.path.join(cortana_path, date, intan_dir))
+    sorted_data = spike_rate_analysis.read_sorted_data(round_path)
+    average_spike_rate_for_sorted_cell = (spike_rate_analysis.compute_avg_spike_rate_for_specific_cell
+                                            (sorted_data, sorted_cell, time_window))
+    average_spike_rate_for_sorted_cell['Date'] = date
+    average_spike_rate_for_sorted_cell['Round No.'] = round_number
+    average_spike_rate_for_sorted_cell['Time Window'] = [time_window]
+    return average_spike_rate_for_sorted_cell
+
+
+def convert_to_enum(channel_str):
+    enum_name = channel_str.split('.')[1]
+    return getattr(Channel, enum_name)
+
+if __name__ == '__main__':
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+    '''
+    Date: 2024-04-28
+    Last Modified: 2024-04-29
+    Generating 12 plots for the list of cells that Ed picked out -- with time window
+    '''
+    metadata_reader = RecordingMetadataReader()
+    raw_metadata = metadata_reader.get_raw_data()
+    metadata_for_prelim_analysis = raw_metadata.parse('Cells_fromEd')
+    metadata_subset = metadata_for_prelim_analysis[['Date', 'Round No.', 'Cell',
+                                                    'Time Window Start', 'Time Window End', 'Location']]
+    metadata_cleaned = metadata_subset.dropna()
+    mask = metadata_cleaned['Cell'].str.contains('Unit')
+    sorted_cells = metadata_cleaned[mask]
+    unsorted_cells = metadata_cleaned[~mask]
+
+    unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(convert_to_enum)
+    rows_for_unsorted = []
+    for index, row in unsorted_cells.iterrows():
+        time_window = (row['Time Window Start'], row['Time Window End'])
+        spike_rate_unsorted = get_average_spike_rate_for_unsorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
+                                                                                        row['Round No.'], row['Cell'], time_window)
+        rows_for_unsorted.append(spike_rate_unsorted)
+    avg_spike_rate_for_unsorted = pd.concat(rows_for_unsorted)
+    print(avg_spike_rate_for_unsorted)
+    zombies_columns = [col for col in zombies if col in avg_spike_rate_for_unsorted.columns]
+    required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+                                          col in avg_spike_rate_for_unsorted.columns]
+    unsorted_spike_rates_zombies = avg_spike_rate_for_unsorted[required_columns]
+    print(unsorted_spike_rates_zombies)
+
+    rows_for_sorted_cells = []
+    for index, row in sorted_cells.iterrows():
+        time_window = (row['Time Window Start'], row['Time Window End'])
+        spike_rate_sorted = get_average_spike_rate_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
+                                                                                    row['Round No.'], row['Cell'], time_window)
+        rows_for_sorted_cells.append(spike_rate_sorted)
+    avg_spike_rate_for_sorted = pd.concat(rows_for_sorted_cells)
+    zombies_columns = [col for col in zombies if col in avg_spike_rate_for_sorted.columns]
+    required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+                                          col in avg_spike_rate_for_sorted.columns]
+    sorted_spike_rates_zombies = avg_spike_rate_for_sorted[required_columns]
+
+
+    # '''
+    #
+    # Looking at each neuron using average spikes rate over 10 trials
+    # 1D analysis for different types of behaviors (affiliation, submission, aggression)
+    #
+    # '''
+    # # Get all experimental round information
     metadata_for_regression = get_metadata_for_preliminary_analysis()
+
 
     agon_beh, Sm_arrow_agon, Sarrow_m_agon = social_data_processor.partition_behavior_variance_from_excel_file(
         'feature_df_agonism.xlsx')
@@ -189,15 +307,15 @@ if __name__ == '__main__':
     X_sub, sub_feature_names = construct_feature_matrix(sub_beh, Sm_arrow_sub, Sarrow_m_sub, 'Submission')
     X_aff, aff_feature_names = construct_feature_matrix(aff_beh, Sm_arrow_aff, Sarrow_m_aff, 'Affiliation')
 
-    # spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey('2023-09-29', 2)
-    # spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
-    # response = np.array(spike_rates_zombies.iloc[0, :].values).reshape(-1, 1)
-    # feature_matrix = np.concatenate((X_agon, X_sub, X_aff), axis=1)
-    # create_overall_plot_for_single_feature_linear_regression_analysis(feature_matrix, response)
-
-    run_single_feature_linear_regression_analysis(X_agon, metadata_for_regression, agon_feature_names, 'agonism')
-    run_single_feature_linear_regression_analysis(X_sub, metadata_for_regression, sub_feature_names, 'submission')
-    run_single_feature_linear_regression_analysis(X_aff, metadata_for_regression, aff_feature_names, 'affiliation')
+    run_single_feature_linear_regression_analysis_individual_cells(X_agon, sorted_spike_rates_zombies,
+                                                                   agon_feature_names, 'Agonism')
+    run_single_feature_linear_regression_analysis_individual_cells(X_sub, sorted_spike_rates_zombies,
+                                                                   sub_feature_names, 'Submission')
+    run_single_feature_linear_regression_analysis_individual_cells(X_aff, sorted_spike_rates_zombies,
+                                                                   aff_feature_names, 'Affiliation')
+    # run_single_feature_linear_regression_analysis(X_agon, metadata_for_regression, agon_feature_names, 'agonism')
+    # run_single_feature_linear_regression_analysis(X_sub, metadata_for_regression, sub_feature_names, 'submission')
+    # run_single_feature_linear_regression_analysis(X_aff, metadata_for_regression, aff_feature_names, 'affiliation')
 
     """
     Generating R-squared histograms
