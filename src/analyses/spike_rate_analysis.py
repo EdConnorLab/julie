@@ -1,53 +1,37 @@
 import os
-from pathlib import Path
 import pandas as pd
 import networkx as nx
 
-from clat.intan.channels import Channel
 from clat.intan.rhd import load_intan_rhd_format
 
+from channel_enum_resolvers import is_channel_in_dict, get_value_from_dict_with_channel, drop_duplicate_channels
 from analyses.single_channel_analysis import read_pickle, calculate_spike_rate
 from analyses.single_unit_analysis import calculate_spike_timestamps
 from recording_metadata_reader import RecordingMetadataReader
 
 
+
 def get_spike_rates_for_each_trial(date, round_number):
     """
     Computes spike rates for each trial for a given experimental round
-
     """
-    metadata_reader = RecordingMetadataReader()
-    pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
-    compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
-    pickle_filepath = os.path.join(compiled_dir, pickle_filename)
-    print(f'Reading pickle file as raw data: {pickle_filepath}')
-    raw_trial_data = read_pickle(pickle_filepath)
-    intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
-    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
-    round_path = Path(os.path.join(cortana_path, date, intan_dir))
-    valid_channels = set(metadata_reader.get_valid_channels(date, round_number))
+    reader = RecordingMetadataReader()
+    pickle_filepath, valid_channels, round_dir_path = reader.get_metadata_for_spike_analysis(date, round_number)
 
+    raw_trial_data = read_pickle(pickle_filepath)
     raw_data_spike_rates = compute_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels)
 
     # Check if the experimental round is sorted
-    sorted_file = round_path / 'sorted_spikes.pkl'
+    sorted_file = round_dir_path / 'sorted_spikes.pkl'
     if sorted_file.exists():
-        print(f"Reading sorted data: {round_path}")
-        sorted_data = read_sorted_data(round_path)
-        channels_with_units = (sorted_data['SpikeTimes'][0].keys())
-        sorted_channels = [int(s.split('_')[1][1:]) for s in channels_with_units]
-        sorted_enum_channels = list(set([Channel(f'C-{channel:03}') for channel in sorted_channels]))
-        # remove channel only if it exists as index
-        for channel in sorted_enum_channels:
-            if channel in raw_data_spike_rates.index:
-                raw_data_spike_rates = raw_data_spike_rates.drop(channel)
+        sorted_data = read_sorted_data(round_dir_path)
         sorted_data_spike_rates = compute_spike_rates_from_sorted_data(sorted_data)
+
+        raw_data_spike_rates = drop_duplicate_channels(raw_data_spike_rates, sorted_data)
         spike_rates = pd.concat([sorted_data_spike_rates, raw_data_spike_rates])
     else:
         spike_rates = raw_data_spike_rates
 
-    # print('-------------------- spike rates for each trial --------------------')
-    # print(spike_rates)
     return spike_rates
 
 
@@ -61,40 +45,22 @@ def get_average_spike_rates_for_each_monkey(date, round_number):
     Returns:
         average spike rates across 10 trials for each monkey
     """
-    metadata_reader = RecordingMetadataReader()
-    pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
-    compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
-    pickle_filepath = os.path.join(compiled_dir, pickle_filename)
-    print(f'Reading pickle file as raw data: {pickle_filepath}')
+    reader = RecordingMetadataReader()
+    pickle_filepath, valid_channels, round_dir_path = reader.get_metadata_for_spike_analysis(date, round_number)
     raw_trial_data = read_pickle(pickle_filepath)
-
-    intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
-    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
-    round_path = Path(os.path.join(cortana_path, date, intan_dir))
-    valid_channels = set(metadata_reader.get_valid_channels(date, round_number))
-
     average_spike_rates_from_raw_data = compute_average_spike_rates_from_raw_trial_data(raw_trial_data,
                                                                                         valid_channels)
-
     # Check if the experimental round is sorted
-    sorted_file = round_path / 'sorted_spikes.pkl'
+    sorted_file = round_dir_path / 'sorted_spikes.pkl'
     if sorted_file.exists():
-        print(f"Reading sorted_file data: {round_path}")
-        sorted_data = read_sorted_data(round_path)
-        channels_with_units = (sorted_data['SpikeTimes'][0].keys())
-        sorted_channels = [int(s.split('_')[1][1:]) for s in channels_with_units]
-        sorted_enum_channels = list(set([Channel(f'C-{channel:03}') for channel in sorted_channels]))
-        # remove channel only if it exists as index
-        for channel in sorted_enum_channels:
-            if channel in average_spike_rates_from_raw_data.index:
-                average_spike_rates_from_raw_data = average_spike_rates_from_raw_data.drop(channel)
+        # read sorted data and compute avg spike rate
+        sorted_data = read_sorted_data(round_dir_path)
         average_spike_rates_from_sorted_data = compute_average_spike_rates_from_sorted_data(sorted_data)
+
+        average_spike_rates_from_raw_data = drop_duplicate_channels(average_spike_rates_from_raw_data, sorted_data)
         average_spike_rates = pd.concat([average_spike_rates_from_sorted_data, average_spike_rates_from_raw_data])
     else:
         average_spike_rates = average_spike_rates_from_raw_data
-
-    # print('-------------------- average spike rates for each monkey ---------------------')
-    # print(average_spike_rates)
 
     return average_spike_rates
 
@@ -111,7 +77,6 @@ def read_sorted_data(round_path, sorted_spikes_filename='sorted_spikes.pkl', com
 
 
 def compute_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
-    # average spike rates for each monkey
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
     spike_rate_per_channel = pd.DataFrame()
     for monkey in unique_monkeys:
@@ -131,7 +96,6 @@ def compute_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
 
 
 def compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
-    # average spike rates for each monkey
     unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
     for monkey in unique_monkeys:
@@ -152,7 +116,6 @@ def compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channe
         # Add monkey-specific spike rates to the DataFrame
         avg_spike_rate_by_unit[monkey] = pd.Series(monkey_specific_spike_rate)
 
-    print(avg_spike_rate_by_unit)
     return avg_spike_rate_by_unit
 
 
@@ -239,25 +202,6 @@ def compute_average_spike_rates_from_sorted_data(sorted_data):
     return avg_spike_rate_by_unit
 
 
-def get_value_from_dict_with_channel(channel, dictionary):
-    if isinstance(channel, str):
-        return dictionary[channel]
-    else:
-        for key, value in dictionary.items():
-            if key.value == channel.value:
-                return value
-
-
-def is_channel_in_dict(channel, diction):
-    if isinstance(channel, str):
-        if channel in list(diction.keys()):
-            return True
-    else:
-        for key in diction:
-            if channel.value == key.value:
-                return True
-
-
 def set_node_attributes_with_default(graph, values_dict, attribute_name, default_value=0):
     for node in graph.nodes():
         value = values_dict.get(node, default_value)
@@ -279,6 +223,7 @@ def compute_population_spike_rates_for_ER():
     print(population_spike_rate)
     return population_spike_rate
 
+
 def compute_population_spike_rates_for_AMG():
     AMG_population = pd.DataFrame()
     reader = RecordingMetadataReader()
@@ -299,12 +244,10 @@ def compute_overall_average_spike_rates_for_each_round(date, round_number):
     return overall_average_spike_rates
 
 
-
 if __name__ == '__main__':
 
     df = get_spike_rates_for_each_trial("2023-10-04", 4)
-    #dat = compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
-    # avg_spike_rates = compute_average_spike_rates_of_each_unit_for_specific_round("2023-09-29", 2)
+    dat = compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
     # ones with errors
     # avg_spike_rates = compute_average_spike_rates("2023-09-29", 1)
     # avg_spike_rates = compute_average_spike_rates("2023-11-08", 1)

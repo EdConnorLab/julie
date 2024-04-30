@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import pandas as pd
 from clat.intan.channels import Channel
 
@@ -36,7 +39,7 @@ class RecordingMetadataReader(ExcelDataReader):
         matching_round = self.recording_metadata[
             (self.recording_metadata['Date'] == date) & (self.recording_metadata['Round No.'] == round_number)]
         filename = matching_round['Pickle File Name'].iloc[0]
-        return str(filename)
+        return str(filename) + ".pk1"
 
     def get_intan_folder_names_for_specific_date(self, date):
         matching_date = self.recording_metadata[(self.recording_metadata['Date'] == date)]
@@ -57,6 +60,23 @@ class RecordingMetadataReader(ExcelDataReader):
         else:
             raise ValueError('Brain region should be ER or AMG')
 
+    def get_metadata_for_spike_analysis(self, date, round_number, monkey='Cortana'):
+        pickle_filename = self.get_pickle_filename_for_specific_round(date, round_number)
+        compiled_dir = (Path(__file__).resolve().parent.parent.parent / 'compiled')
+        pickle_filepath = os.path.join(compiled_dir, pickle_filename)
+        valid_channels = set(self.get_valid_channels(date, round_number))
+
+        # for sorted rounds
+        intan_dir = self.get_intan_folder_name_for_specific_round(date, round_number)
+        if monkey == 'Cortana':
+            round_dir_path = Path("/home/connorlab/Documents/IntanData/Cortana") / date / intan_dir
+        elif monkey == 'Bixby':
+            round_dir_path = Path("/home/connorlab/Documents/IntanData/Bixby") / date / intan_dir
+        else:
+            raise ValueError('Monkey should be Cortana or Bixby')
+
+        return pickle_filepath, valid_channels, round_dir_path
+
 
 if __name__ == "__main__":
     reader = RecordingMetadataReader()
@@ -66,4 +86,3 @@ if __name__ == "__main__":
     AMG_data = data[data['Location'] == 'Amygdala']
     print("JH 12: \n", ER_data)
     print("JH 32192: \n", AMG_data)
-    # get_valid_channels("10-10-2023", "1696957915096002_231010_131155")

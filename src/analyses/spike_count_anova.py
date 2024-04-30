@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from clat.intan.channels import Channel
 
+import spike_count
 import spike_rate_analysis
 from analyses.single_channel_analysis import read_pickle, get_spike_count
 from initial_4feature_lin_reg import get_metadata_for_preliminary_analysis
@@ -14,152 +15,7 @@ from spike_rate_analysis import read_sorted_data
 from scipy.stats import f_oneway
 
 
-def get_spike_count_for_unsorted_cell_with_time_window(date, round_number, unsorted_cell, time_window):
-    metadata_reader = RecordingMetadataReader()
-    pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
-    compiled_dir = (Path(__file__).resolve().parent.parent.parent / 'compiled')
-    pickle_filepath = os.path.join(compiled_dir, pickle_filename)
-    raw_trial_data = read_pickle(pickle_filepath)
-    raw_data_spike_counts = count_spikes_for_specific_cell_time_windowed(raw_trial_data, unsorted_cell, time_window)
-    raw_data_spike_counts['Date'] = date
-    raw_data_spike_counts['Round No.'] = round_number
-    raw_data_spike_counts['Time Window'] = [time_window]
-    return raw_data_spike_counts
-
-
-def get_spike_count_for_sorted_cell_with_time_window(date, round_number, sorted_cell, time_window):
-    metadata_reader = RecordingMetadataReader()
-    intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
-    data_path = Path("/home/connorlab/Documents/IntanData/Cortana") / date / intan_dir
-    sorted_data = spike_rate_analysis.read_sorted_data(data_path)
-    sorted_data_spike_counts = count_spikes_for_specific_cell_time_windowed(sorted_data, sorted_cell, time_window)
-    sorted_data_spike_counts['Date'] = date
-    sorted_data_spike_counts['Round No.'] = round_number
-    sorted_data_spike_counts['Time Window'] = [time_window]
-    return sorted_data_spike_counts
-
-
-def count_spikes_for_specific_cell_time_windowed(raw_data, cell, time_window):
-    unique_monkeys = raw_data['MonkeyName'].dropna().unique().tolist()
-    spike_count_per_channel = pd.DataFrame()
-    for monkey in unique_monkeys:
-        monkey_data = raw_data[raw_data['MonkeyName'] == monkey]
-        monkey_spike_counts = {}
-        spike_counts = []
-        for index, row in monkey_data.iterrows():
-            if is_channel_in_dict(cell, row['SpikeTimes']):
-                data = get_value_from_dict_with_channel(cell, row['SpikeTimes'])
-                if time_window is not None:
-                    window_start_micro, window_end_micro = time_window
-                    window_start_sec = window_start_micro * 0.001
-                    window_end_sec = window_end_micro * 0.001
-                    start_time, end_time = row['EpochStartStop']
-                    spike_counts.append(
-                        get_spike_count(data, (start_time + window_start_sec, start_time + window_end_sec)))
-                else:
-                    spike_counts.append(get_spike_count(data, row['EpochStartStop']))
-            else:
-                print(f"No data for {cell} in row {index}")
-        monkey_spike_counts[cell] = spike_counts
-        spike_count_per_channel[monkey] = pd.Series(monkey_spike_counts)
-    return spike_count_per_channel
-
-def get_spike_count_for_each_trial(date, round_number):
-    """
-    Return: number of spikes for each trial for a given experimental round
-    """
-    metadata_reader = RecordingMetadataReader()
-    pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number) + ".pk1"
-    compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
-    pickle_filepath = os.path.join(compiled_dir, pickle_filename)
-    raw_trial_data = read_pickle(pickle_filepath)
-    intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
-    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
-    round_path = Path(os.path.join(cortana_path, date, intan_dir))
-    valid_channels = set(metadata_reader.get_valid_channels(date, round_number))
-
-    raw_data_spike_counts = count_spikes_from_raw_trial_data(raw_trial_data, valid_channels)
-
-    # Check if the experimental round is sorted
-    sorted_file = round_path / 'sorted_spikes.pkl'
-    if sorted_file.exists():
-        print(f"Reading sorted data: {round_path}")
-        sorted_data = read_sorted_data(round_path)
-        channels_with_units = (sorted_data['SpikeTimes'][0].keys())
-        sorted_channels = [int(s.split('_')[1][1:]) for s in channels_with_units]
-        sorted_enum_channels = list(set([Channel(f'C-{channel:03}') for channel in sorted_channels]))
-        # remove channel only if it exists as index
-        for channel in sorted_enum_channels:
-            if channel in raw_data_spike_counts.index:
-                raw_data_spike_counts = raw_data_spike_counts.drop(channel)
-        sorted_data_spike_counts = count_spikes_from_sorted_data(sorted_data)
-        spike_counts = pd.concat([sorted_data_spike_counts, raw_data_spike_counts])
-    else:
-        spike_counts = raw_data_spike_counts
-
-    return spike_counts
-
-
-def count_spikes_from_sorted_data(sorted_data):
-    unique_monkeys = sorted_data['MonkeyName'].dropna().unique().tolist()
-    spike_count_by_unit = pd.DataFrame(index=[])
-    unique_channels = set()
-    unique_channels.update(sorted_data['SpikeTimes'][0].keys())
-    for monkey in unique_monkeys:
-        monkey_data = sorted_data[sorted_data['MonkeyName'] == monkey]
-        monkey_specific_spike_counts = {}
-        for channel in unique_channels:
-            spike_count = []
-            for index, row in monkey_data.iterrows():
-                if is_channel_in_dict(channel, row['SpikeTimes']):
-                    data = get_value_from_dict_with_channel(channel, row['SpikeTimes'])
-                    spike_count.append(get_spike_count(data, row['EpochStartStop']))
-                else:
-                   print(f"No data for {channel} in row {index}")
-            monkey_specific_spike_counts[channel] = spike_count
-        spike_count_by_unit[monkey] = pd.Series(monkey_specific_spike_counts)
-    return spike_count_by_unit
-
-
-def count_spikes_from_raw_trial_data(raw_trial_data, valid_channels):
-    unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
-    spike_count_per_channel = pd.DataFrame()
-    for monkey in unique_monkeys:
-        monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
-        monkey_spike_counts = {}
-        for channel in valid_channels:
-            spike_counts = []
-            for index, row in monkey_data.iterrows():
-                if is_channel_in_dict(channel, row['SpikeTimes']):
-                    data = get_value_from_dict_with_channel(channel, row['SpikeTimes'])
-                    spike_counts.append(get_spike_count(data, row['EpochStartStop']))
-                else:
-                    print(f"No data for {channel} in row {index}")
-            monkey_spike_counts[channel] = spike_counts
-        spike_count_per_channel[monkey] = pd.Series(monkey_spike_counts)
-    return spike_count_per_channel
-
-
-def get_value_from_dict_with_channel(channel, dictionary):
-    if isinstance(channel, str):
-        return dictionary[channel]
-    else:
-        for key, value in dictionary.items():
-            if key.value == channel.value:
-                return value
-
-
-def is_channel_in_dict(channel, diction):
-    if isinstance(channel, str):
-        if channel in list(diction.keys()):
-            return True
-    else:
-        for key in diction:
-            if channel.value == key.value:
-                return True
-
-
-def perform_anova_on_rows(df):
+def perform_anova_on_dataframe_rows(df):
     """
     Perform one-way ANOVA on rows of a DataFrame
     """
@@ -175,7 +31,8 @@ def perform_anova_on_rows(df):
         #     significant_results.append((date, round_no, index, p_val))
     return results, significant_results
 
-def perform_anova_on_rows_for_time_windowed(df):
+
+def perform_anova_on_dataframe_rows_for_time_windowed(df):
     """
     Perform one-way ANOVA on rows of a DataFrame
     """
@@ -261,7 +118,7 @@ if __name__ == '__main__':
     rows_for_unsorted = []
     for index, row in unsorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_count_unsorted = get_spike_count_for_unsorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
+        spike_count_unsorted = spike_count.get_spike_count_for_unsorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
                                                                                   row['Round No.'], row['Cell'],
                                                                                   time_window)
         rows_for_unsorted.append(spike_count_unsorted)
@@ -273,7 +130,7 @@ if __name__ == '__main__':
     print(unsorted_spike_count_zombies)
 
     # Perform ANOVA on unsorted
-    anova_results, sig_results = perform_anova_on_rows_for_time_windowed(unsorted_spike_count_zombies)
+    anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(unsorted_spike_count_zombies)
     anova_results.to_csv('Unsorted_windowed_ANOVA_results.csv')
     sig_results.to_csv('Unsorted_windowed_ANOVA_significant_results.csv')
 
@@ -281,7 +138,7 @@ if __name__ == '__main__':
     rows_for_sorted = []
     for index, row in sorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_count_sorted = get_spike_count_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
+        spike_count_sorted = spike_count.get_spike_count_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
                                                                               row['Round No.'], row['Cell'],
                                                                               time_window)
         rows_for_sorted.append(spike_count_sorted)
@@ -293,7 +150,7 @@ if __name__ == '__main__':
     print(sorted_spike_count_zombies)
 
     # Perform ANOVA on sorted
-    anova_results, sig_results = perform_anova_on_rows_for_time_windowed(sorted_spike_count_zombies)
+    anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(sorted_spike_count_zombies)
     anova_results.to_csv('Sorted_windowed_ANOVA_results.csv')
     sig_results.to_csv('Sorted_windowed_ANOVA_significant_results.csv')
 
