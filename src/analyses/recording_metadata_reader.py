@@ -67,13 +67,9 @@ class RecordingMetadataReader(ExcelDataReader):
         valid_channels = set(self.get_valid_channels(date, round_number))
 
         # for sorted rounds
+        base_dir = Path("/home/connorlab/Documents/IntanData")
         intan_dir = self.get_intan_folder_name_for_specific_round(date, round_number)
-        if monkey == 'Cortana':
-            round_dir_path = Path("/home/connorlab/Documents/IntanData/Cortana") / date / intan_dir
-        elif monkey == 'Bixby':
-            round_dir_path = Path("/home/connorlab/Documents/IntanData/Bixby") / date / intan_dir
-        else:
-            raise ValueError('Monkey should be Cortana or Bixby')
+        round_dir_path = base_dir / monkey / date / intan_dir
 
         return pickle_filepath, valid_channels, round_dir_path
 
