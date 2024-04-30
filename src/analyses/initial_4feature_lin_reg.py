@@ -1,10 +1,8 @@
-from pathlib import Path
 import os
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from clat.intan.channels import Channel
+from pathlib import Path
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from statsmodels.regression.linear_model import OLS
 
@@ -205,7 +203,6 @@ def generate_r_squared_histogram_for_specific_population(X, feature_names, locat
                 stat_param_list.append(stat_params_to_be_saved)
     results_df = pd.DataFrame(stat_param_list, columns=['Date', 'Round', 'Neuron', 'Feature Name', 'R-squared',
                                                         'p-value', 'coefficients'])
-
     return results_df
 
 
@@ -223,6 +220,7 @@ def get_average_spike_rate_for_unsorted_cell_with_time_window(date, round_number
     average_spike_rate_for_unsorted_cell['Time Window'] = [time_window]
     return average_spike_rate_for_unsorted_cell
 
+
 def get_average_spike_rate_for_sorted_cell_with_time_window(date, round_number, sorted_cell, time_window):
     metadata_reader = RecordingMetadataReader()
     intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
@@ -236,10 +234,6 @@ def get_average_spike_rate_for_sorted_cell_with_time_window(date, round_number, 
     average_spike_rate_for_sorted_cell['Time Window'] = [time_window]
     return average_spike_rate_for_sorted_cell
 
-
-def convert_to_enum(channel_str):
-    enum_name = channel_str.split('.')[1]
-    return getattr(Channel, enum_name)
 
 if __name__ == '__main__':
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
@@ -258,7 +252,7 @@ if __name__ == '__main__':
     sorted_cells = metadata_cleaned[mask]
     unsorted_cells = metadata_cleaned[~mask]
 
-    unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(convert_to_enum)
+    unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(enum_dict_resolvers.convert_to_enum)
     rows_for_unsorted = []
     for index, row in unsorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
