@@ -1,20 +1,14 @@
-import os
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from pathlib import Path
-import pandas as pd
-
-from analyses.spike_rate_analysis import read_sorted_data, compute_average_spike_rates_from_raw_trial_data, \
-    set_node_attributes_with_default
 from monkey_names import Monkey
-from network import create_graph_with_edge_weights, create_digraph_with_edge_weights
-from social_data_reader import SocialDataReader
+from unused.network import create_digraph_with_edge_weights
+from data_readers.social_data_reader import SocialDataReader
 from social_data_processor import extract_specific_social_behavior, generate_edge_list_from_extracted_interactions
-from behaviors import AgonisticBehaviors as Agonistic
-from behaviors import SubmissiveBehaviors as Submissive
-from behaviors import AffiliativeBehaviors as Affiliative
-from behaviors import IndividualBehaviors as Individual
+from enums.behaviors import AgonisticBehaviors as Agonistic
+from enums.behaviors import SubmissiveBehaviors as Submissive
+from enums.behaviors import AffiliativeBehaviors as Affiliative
+
 
 def main():
     social_data = SocialDataReader().social_data

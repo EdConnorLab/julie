@@ -1,12 +1,3 @@
-from itertools import combinations
-
-import numpy as np
-import pandas as pd
-from statsmodels.regression.linear_model import OLS
-import matplotlib.pyplot as plt
-
-import spike_rate_analysis
-from monkey_names import Monkey
 #
 # zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
 #

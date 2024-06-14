@@ -1,17 +1,11 @@
 import math
-import os
-from pathlib import Path
 import numpy as np
 import pandas as pd
 from clat.intan.channels import Channel
 
 import spike_count
-import spike_rate_analysis
-from analyses.single_channel_analysis import read_pickle, get_spike_count
-from initial_4feature_lin_reg import get_metadata_for_preliminary_analysis
 from monkey_names import Monkey
-from recording_metadata_reader import RecordingMetadataReader
-from spike_rate_analysis import read_sorted_data
+from data_readers.recording_metadata_reader import RecordingMetadataReader
 from scipy.stats import f_oneway
 
 

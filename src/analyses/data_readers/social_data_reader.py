@@ -4,7 +4,7 @@ from excel_data_reader import ExcelDataReader
 class SocialDataReader(ExcelDataReader):
 
     def __init__(self):
-        super().__init__(file_name='ZombiesFinalRawData.xlsx')
+        super().__init__(file_name='../../../resources/ZombiesFinalRawData.xlsx')
         self.raw_social_data = self.get_raw_social_data()
         self.social_data = self.clean_raw_social_data()
 

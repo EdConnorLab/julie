@@ -1,25 +1,17 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
-from sklearn import decomposition
 from excel_data_reader import ExcelDataReader
-from recording_metadata_reader import RecordingMetadataReader
-from social_data_reader import SocialDataReader
-from sklearn.linear_model import LinearRegression
+from data_readers.recording_metadata_reader import RecordingMetadataReader
 from statsmodels.regression.linear_model import OLS
 
-from behaviors import AgonisticBehaviors as Agonistic
-from behaviors import SubmissiveBehaviors as Submissive
-from behaviors import AffiliativeBehaviors as Affiliative
-from behaviors import IndividualBehaviors as Individual
 from monkey_names import Monkey
 import spike_rate_analysis
 
 if __name__ == '__main__':
 
     # Get genealogy matrix
-    excel_data_reader = ExcelDataReader(file_name='genealogy_matrix.xlsx')
+    excel_data_reader = ExcelDataReader(file_name='../../../resources/genealogy_matrix.xlsx')
     genealogy_data = excel_data_reader.get_first_sheet()
     print(genealogy_data)
     genealogy_data['Focal Name'] = genealogy_data['Focal Name'].astype(str)

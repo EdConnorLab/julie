@@ -4,7 +4,6 @@ import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import spike_count
-from sklearn.preprocessing import StandardScaler
 from excel_data_reader import ExcelDataReader
 
 """

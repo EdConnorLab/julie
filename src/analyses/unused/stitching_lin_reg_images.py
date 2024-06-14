@@ -2,7 +2,7 @@ import os
 from PIL import Image
 
 #
-source_dir = '/home/connorlab/Documents/GitHub/Julie/linear_regression_results/time_windowed_cells'
+source_dir = '/linear_regression_results/time_windowed_cells'
 dest_dir = '/linear_regression_results/time_windowed_cells/regression_plots/stitched'
 
 

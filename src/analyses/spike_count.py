@@ -1,11 +1,9 @@
-import os
-from pathlib import Path
 import pandas as pd
 
 import spike_rate_analysis
 from channel_enum_resolvers import drop_duplicate_channels, is_channel_in_dict, get_value_from_dict_with_channel
 from single_channel_analysis import read_pickle, get_spike_count
-from recording_metadata_reader import RecordingMetadataReader
+from data_readers.recording_metadata_reader import RecordingMetadataReader
 from spike_rate_analysis import read_sorted_data
 
 

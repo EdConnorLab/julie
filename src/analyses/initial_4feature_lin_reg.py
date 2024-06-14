@@ -9,7 +9,7 @@ from statsmodels.regression.linear_model import OLS
 import social_data_processor
 import spike_rate_analysis
 from monkey_names import Monkey
-from recording_metadata_reader import RecordingMetadataReader
+from data_readers.recording_metadata_reader import RecordingMetadataReader
 from single_channel_analysis import read_pickle
 
 

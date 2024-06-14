@@ -2,12 +2,12 @@ import pandas as pd
 import numpy as np
 
 from excel_data_reader import ExcelDataReader
-from social_data_reader import SocialDataReader
+from data_readers.social_data_reader import SocialDataReader
 
-from behaviors import AgonisticBehaviors as Agonistic
-from behaviors import SubmissiveBehaviors as Submissive
-from behaviors import AffiliativeBehaviors as Affiliative
-from behaviors import IndividualBehaviors as Individual
+from enums.behaviors import AgonisticBehaviors as Agonistic
+from enums.behaviors import SubmissiveBehaviors as Submissive
+from enums.behaviors import AffiliativeBehaviors as Affiliative
+from enums.behaviors import IndividualBehaviors as Individual
 from monkey_names import Monkey
 import spike_rate_analysis
 

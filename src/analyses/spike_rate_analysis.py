@@ -7,7 +7,7 @@ from clat.intan.rhd import load_intan_rhd_format
 from channel_enum_resolvers import is_channel_in_dict, get_value_from_dict_with_channel, drop_duplicate_channels
 from analyses.single_channel_analysis import read_pickle, calculate_spike_rate
 from analyses.single_unit_analysis import calculate_spike_timestamps
-from recording_metadata_reader import RecordingMetadataReader
+from data_readers.recording_metadata_reader import RecordingMetadataReader
 
 
 

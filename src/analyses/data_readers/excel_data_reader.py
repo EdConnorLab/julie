@@ -8,7 +8,7 @@ class ExcelDataReader:
 
     def __init__(self, file_name=None):
         self.file_name = file_name
-        self.resource_dir_path = '/home/connorlab/Documents/GitHub/Julie/resources'
+        self.resource_dir_path = '/'
         if self.file_name is not None:
             self.file_path = Path(os.path.join(self.resource_dir_path, self.file_name))
         else:
