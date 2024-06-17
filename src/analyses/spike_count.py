@@ -1,10 +1,10 @@
 import pandas as pd
 
-import spike_rate_analysis
+import spike_rate_computation
 from channel_enum_resolvers import drop_duplicate_channels, is_channel_in_dict, get_value_from_dict_with_channel
 from single_channel_analysis import read_pickle, get_spike_count
 from data_readers.recording_metadata_reader import RecordingMetadataReader
-from spike_rate_analysis import read_sorted_data
+from spike_rate_computation import read_sorted_data
 
 
 def add_metadata_to_spike_counts(spike_count_df, date, round_number, time_window):
@@ -29,7 +29,7 @@ def get_spike_count_for_unsorted_cell_with_time_window(date, round_number, unsor
 def get_spike_count_for_sorted_cell_with_time_window(date, round_number, sorted_cell, time_window):
     reader = RecordingMetadataReader()
     _, _, sorted_data_path = reader.get_metadata_for_spike_analysis(date, round_number)
-    sorted_data = spike_rate_analysis.read_sorted_data(sorted_data_path)
+    sorted_data = spike_rate_computation.read_sorted_data(sorted_data_path)
     sorted_data_spike_counts = count_spikes_for_specific_cell_time_windowed(sorted_data, sorted_cell, time_window)
     sorted_data_spike_counts = add_metadata_to_spike_counts(sorted_data_spike_counts, date, round_number, time_window)
     return sorted_data_spike_counts

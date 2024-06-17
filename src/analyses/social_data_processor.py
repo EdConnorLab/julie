@@ -9,7 +9,7 @@ from enums.behaviors import SubmissiveBehaviors as Submissive
 from enums.behaviors import AffiliativeBehaviors as Affiliative
 from enums.behaviors import IndividualBehaviors as Individual
 from monkey_names import Monkey
-import spike_rate_analysis
+import spike_rate_computation
 
 
 def extract_specific_social_behavior(social_data, social_behavior):
@@ -114,9 +114,7 @@ def generate_feature_matrix_from_edge_list(edge_list, monkey_group):
     return feature_df
 
 
-
 if __name__ == '__main__':
-
     social_data = SocialDataReader().social_data
     # Agonistic
     agonistic_behaviors = list(Agonistic)
@@ -159,46 +157,3 @@ if __name__ == '__main__':
     # normalized_cols = feature_df[cols_to_normalize] / feature_df[cols_to_normalize].max()
     # normalized_df = pd.concat([feature_df.iloc[:, 0], normalized_cols, feature_df.select_dtypes(exclude='int64')], axis=1)
     # print(normalized_df.shape)
-
-    # Get only numbers
-    # numeric_columns = normalized_df.iloc[:, 1:-1]
-    # Convert selected numeric columns to a NumPy array
-    # numeric_array = numeric_columns.values
-    # # Append a column of 1s to the array to represent the last column
-    # numeric_array_with_ones = np.hstack((numeric_array, np.ones((numeric_array.shape[0], 1))))
-    # # Compute pseudoinverse of the resulting array
-    # X = numeric_array_with_ones
-
-
-    # Get Spike Rate -- Y
-
-    #ER_population_spike_rate = spike_rate_analysis.compute_population_spike_rates_for_ER()
-    population_spike_rate = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-09-29", 2)
-    print("population spike rate")
-    # print(population_spike_rate)
-    # matching_indices = zombies_df['Focal Name'].isin(population_spike_rate.index)
-    # matching_rows = population_spike_rate.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
-    # spike_rate_df = matching_rows.to_frame(name='Spike Rates')
-    # spike_rate_df['Focal Name'] = spike_rate_df.index
-    # spike_rate_df = pd.merge(zombies_df, spike_rate_df, on='Focal Name', how='left').fillna(0)
-    #
-    # # Extract values from a column as a NumPy array
-    # column_values = spike_rate_df['Spike Rates'].values
-    # # Convert the column values to a column matrix
-    # Y = column_values.reshape(-1, 1)
-    #
-    # lr = LinearRegression(fit_intercept=False)
-    # lr.fit(numeric_array, Y)
-    #
-    # print('coeff')
-    # print(lr.coef_)
-    # model = OLS(Y, X)
-    # results = model.fit()
-    # print(results.summary())
-
-    # submissive_behavior_list = list(Submissive)
-    # submissive = extract_specific_social_behavior(social_data, submissive_behavior_list)
-    # edgelist_submissive = generate_edgelist_from_extracted_interactions(submissive)
-    #
-    # print(edgelist_submissive['Social Modifier'].unique())
-

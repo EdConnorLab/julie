@@ -73,12 +73,12 @@ class RecordingMetadataReader(ExcelDataReader):
 
         return pickle_filepath, valid_channels, round_dir_path
 
-
-if __name__ == "__main__":
-    reader = RecordingMetadataReader()
-    data = reader.recording_metadata
-    filename = reader.get_pickle_filename_for_specific_round("2023-10-27", 1)
-    ER_data = data[data['Location'] == 'ER']
-    AMG_data = data[data['Location'] == 'Amygdala']
-    print("JH 12: \n", ER_data)
-    print("JH 32192: \n", AMG_data)
+#
+# if __name__ == "__main__":
+#     reader = RecordingMetadataReader()
+#     data = reader.recording_metadata
+#     filename = reader.get_pickle_filename_for_specific_round("2023-10-27", 1)
+#     ER_data = data[data['Location'] == 'ER']
+#     AMG_data = data[data['Location'] == 'Amygdala']
+#     print("JH 12: \n", ER_data)
+#     print("JH 32192: \n", AMG_data)

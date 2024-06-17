@@ -128,7 +128,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
 
     plt.show()
     ## SAVE PLOTS
-    base_save_dir = "/home/connorlab/Documents/GitHub/Julie/png_raster_plots/"
+    base_save_dir = "/png_raster_plots/"
     if experiment_name is not None:
         save_dir = os.path.join(base_save_dir, experiment_name)
         os.makedirs(save_dir, exist_ok=True)

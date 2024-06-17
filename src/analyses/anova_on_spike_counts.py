@@ -1,8 +1,8 @@
 import math
 import numpy as np
 import pandas as pd
-from clat.intan.channels import Channel
 
+import channel_enum_resolvers
 import spike_count
 from monkey_names import Monkey
 from data_readers.recording_metadata_reader import RecordingMetadataReader
@@ -84,10 +84,6 @@ def perform_anova_permutation_test_on_rows(df, num_permutations=1000):
     return results, total_sig
 
 
-def convert_to_enum(channel_str):
-    enum_name = channel_str.split('.')[1]
-    return getattr(Channel, enum_name)
-
 if __name__ == '__main__':
     '''
     Date: 2024-04-29
@@ -108,7 +104,7 @@ if __name__ == '__main__':
     unsorted_cells = metadata_cleaned[~mask]
 
     # unsorted
-    unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(convert_to_enum)
+    unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(channel_enum_resolvers.convert_to_enum())
     rows_for_unsorted = []
     for index, row in unsorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
