@@ -10,7 +10,7 @@ from excel_data_reader import ExcelDataReader
 class RecordingMetadataReader(ExcelDataReader):
 
     def __init__(self):
-        super().__init__(file_name='../../../resources/Cortana_Recording_Metadata.xlsx')
+        super().__init__(file_name='Cortana_Recording_Metadata.xlsx')
         self.recording_metadata = self.get_metadata()
 
     def get_metadata(self):
@@ -62,7 +62,7 @@ class RecordingMetadataReader(ExcelDataReader):
 
     def get_metadata_for_spike_analysis(self, date, round_number, monkey='Cortana'):
         pickle_filename = self.get_pickle_filename_for_specific_round(date, round_number)
-        compiled_dir = (Path(__file__).resolve().parent.parent.parent / 'compiled')
+        compiled_dir = (Path(__file__).resolve().parent.parent.parent.parent / 'compiled')
         pickle_filepath = os.path.join(compiled_dir, pickle_filename)
         valid_channels = set(self.get_valid_channels(date, round_number))
 
