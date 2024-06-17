@@ -40,6 +40,19 @@ def get_metadata_for_preliminary_analysis():
     return metadata_for_prelim_analysis
 
 
+def get_metadata_of_specific_cells():
+    metadata_reader = RecordingMetadataReader()
+    raw_metadata = metadata_reader.get_raw_data()
+    metadata_for_prelim_analysis = raw_metadata.parse('Cells_fromEd')
+    metadata_subset = metadata_for_prelim_analysis[['Date', 'Round No.', 'Cell',
+                                                    'Time Window Start', 'Time Window End', 'Location']]
+    metadata_cleaned = metadata_subset.dropna()
+    mask = metadata_cleaned['Cell'].str.contains('Unit')
+    metadata_sorted_cells = metadata_cleaned[mask]
+    metadata_unsorted_cells = metadata_cleaned[~mask]
+
+    return metadata_sorted_cells, metadata_unsorted_cells
+
 def create_overall_plot_for_single_feature_linear_regression_analysis(feature_matrix, response):
     """
     Creates 2x2 plot for different behavior types (Agonism, Submission, Affiliation) for each neuron and combine
@@ -238,18 +251,6 @@ def get_average_spike_rate_for_sorted_cell_with_time_window(date, round_number, 
     return average_spike_rate_for_sorted_cell
 
 
-def get_metadata_of_specific_cells():
-    metadata_reader = RecordingMetadataReader()
-    raw_metadata = metadata_reader.get_raw_data()
-    metadata_for_prelim_analysis = raw_metadata.parse('Cells_fromEd')
-    metadata_subset = metadata_for_prelim_analysis[['Date', 'Round No.', 'Cell',
-                                                    'Time Window Start', 'Time Window End', 'Location']]
-    metadata_cleaned = metadata_subset.dropna()
-    mask = metadata_cleaned['Cell'].str.contains('Unit')
-    metadata_sorted_cells = metadata_cleaned[mask]
-    metadata_unsorted_cells = metadata_cleaned[~mask]
-
-    return metadata_sorted_cells, metadata_unsorted_cells
 
 if __name__ == '__main__':
     '''
