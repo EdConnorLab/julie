@@ -5,8 +5,10 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from sklearn.multioutput import MultiOutputRegressor
 
+import social_data_processor
 import spike_count
 from excel_data_reader import ExcelDataReader
+from initial_4feature_lin_reg import construct_feature_matrix_from_behavior_data
 from monkey_names import Monkey
 from sklearn.model_selection import train_test_split
 
@@ -25,8 +27,12 @@ Response
 
 """
 # Get frequency of behaviors table
-
-
+monkey = "81G"
+agon_beh, Sm_arrow_agon, Sarrow_m_agon = social_data_processor.partition_behavior_variance_from_excel_file(
+    'feature_df_agonism.xlsx')
+X_agon, agon_feature_names = construct_feature_matrix_from_behavior_data(monkey, agon_beh, Sm_arrow_agon,
+                                                                         Sarrow_m_agon, 'Agonism')
+X_agon_aug = sm.add_constant(X_agon)
 
 # Get genealogy matrix
 excel_data_reader = ExcelDataReader(file_name='genealogy_matrix.xlsx')
@@ -69,6 +75,27 @@ Y_avg = neuron.loc[zombies_columns]
 lasso = LassoCV(cv=9).fit(X_aug, Y_avg)
 betas = lasso.coef_
 print("betas: ", betas)
+
+
+######
+# Split the data into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X_agon_aug, Y, test_size=0.2, random_state=42)
+lasso = LassoCV(cv=5)
+multi_output_lasso = MultiOutputRegressor(lasso)
+multi_output_lasso.fit(X_train, Y_train)
+Y_pred = multi_output_lasso.predict(X_test)
+print("Predictions for agon:\n", Y_pred)
+print("Actual values for agon:\n", Y_test)
+
+
+spike_rates = get_average_spike_rates_for_each_monkey("2023-10-04", 1)
+spike_rates.to_csv('sample_spike_rates_for_poisson_glm.csv', index=False)
+neuron = spike_rates.iloc[5, :]
+zombies_columns = [col for col in zombies if col in neuron.index]
+Y_avg = neuron.loc[zombies_columns]
+lasso = LassoCV(cv=9).fit(X_agon_aug, Y_avg)
+betas = lasso.coef_
+print("betas for agon: ", betas)
 
 #
 # # X_scaled = sm.add_constant(X_scaled)
