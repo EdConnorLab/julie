@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 import channel_enum_resolvers
+import initial_4feature_lin_reg
 import spike_count
 from monkey_names import Monkey
 from data_readers.recording_metadata_reader import RecordingMetadataReader
@@ -90,18 +91,7 @@ if __name__ == '__main__':
     ANOVA for selected cells from Ed (time windowed)
     '''
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
-
-    metadata_reader = RecordingMetadataReader()
-    raw_metadata = metadata_reader.get_raw_data()
-    metadata_for_prelim_analysis = raw_metadata.parse('Cells_fromEd')
-    metadata_subset = metadata_for_prelim_analysis[['Date', 'Round No.', 'Cell',
-                                                    'Time Window Start', 'Time Window End', 'Location']]
-    metadata_cleaned = metadata_subset.dropna()
-
-    # subset sorted and unsorted
-    mask = metadata_cleaned['Cell'].str.contains('Unit')
-    sorted_cells = metadata_cleaned[mask]
-    unsorted_cells = metadata_cleaned[~mask]
+    sorted_cells, unsorted_cells = initial_4feature_lin_reg.get_metadata_of_specific_cells()
 
     # unsorted
     unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(channel_enum_resolvers.convert_to_enum())

@@ -12,6 +12,7 @@ from monkey_names import Monkey
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from single_channel_analysis import read_pickle
 
+
 def construct_feature_matrix_from_behavior_data(monkey_of_interest, behavior_data, Sm_arrow, Sarrow_m, behavior_type):
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
     subject_index = zombies.index(monkey_of_interest)
@@ -97,7 +98,8 @@ def run_single_feature_linear_regression_analysis_individual_cells(features, spi
         window = row['Time Window']
         int_window = (int(window[0]), int(window[1]))
         fig = plt.figure(figsize=(10, 14))
-        fig.suptitle(f"{behavior_type} plots for {date} Round {round_no} {index} for {int_window[0]}ms to {int_window[1]}ms")
+        fig.suptitle(
+            f"{behavior_type} plots for {date} Round {round_no} {index} for {int_window[0]}ms to {int_window[1]}ms")
         cleaned_row = row.drop(['Date', 'Round No.', 'Time Window'])
         labels = cleaned_row.index
         y = np.array(cleaned_row.values).astype(float).reshape(-1, 1)
@@ -122,7 +124,7 @@ def run_single_feature_linear_regression_analysis_individual_cells(features, spi
 
         # plt.show()
         fig.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/'
-                        f'time_windowed_cells/{behavior_type}_{date}_round{round_no}_{index} for {int_window}.png')
+                    f'time_windowed_cells/{behavior_type}_{date}_round{round_no}_{index} for {int_window}.png')
         plt.close()
 
 
@@ -229,12 +231,25 @@ def get_average_spike_rate_for_sorted_cell_with_time_window(date, round_number, 
     round_path = Path(os.path.join(cortana_path, date, intan_dir))
     sorted_data = spike_rate_computation.read_sorted_data(round_path)
     average_spike_rate_for_sorted_cell = (spike_rate_computation.compute_avg_spike_rate_for_specific_cell
-                                            (sorted_data, sorted_cell, time_window))
+                                          (sorted_data, sorted_cell, time_window))
     average_spike_rate_for_sorted_cell['Date'] = date
     average_spike_rate_for_sorted_cell['Round No.'] = round_number
     average_spike_rate_for_sorted_cell['Time Window'] = [time_window]
     return average_spike_rate_for_sorted_cell
 
+
+def get_metadata_of_specific_cells():
+    metadata_reader = RecordingMetadataReader()
+    raw_metadata = metadata_reader.get_raw_data()
+    metadata_for_prelim_analysis = raw_metadata.parse('Cells_fromEd')
+    metadata_subset = metadata_for_prelim_analysis[['Date', 'Round No.', 'Cell',
+                                                    'Time Window Start', 'Time Window End', 'Location']]
+    metadata_cleaned = metadata_subset.dropna()
+    mask = metadata_cleaned['Cell'].str.contains('Unit')
+    metadata_sorted_cells = metadata_cleaned[mask]
+    metadata_unsorted_cells = metadata_cleaned[~mask]
+
+    return metadata_sorted_cells, metadata_unsorted_cells
 
 if __name__ == '__main__':
     '''
@@ -243,22 +258,16 @@ if __name__ == '__main__':
     Generating 12 plots for the list of cells that Ed picked out -- with time window
     '''
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
-    metadata_reader = RecordingMetadataReader()
-    raw_metadata = metadata_reader.get_raw_data()
-    metadata_for_prelim_analysis = raw_metadata.parse('Cells_fromEd')
-    metadata_subset = metadata_for_prelim_analysis[['Date', 'Round No.', 'Cell',
-                                                    'Time Window Start', 'Time Window End', 'Location']]
-    metadata_cleaned = metadata_subset.dropna()
-    mask = metadata_cleaned['Cell'].str.contains('Unit')
-    sorted_cells = metadata_cleaned[mask]
-    unsorted_cells = metadata_cleaned[~mask]
+    sorted_cells, unsorted_cells = get_metadata_of_specific_cells()
 
+    # unsorted cells
     unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(channel_enum_resolvers.convert_to_enum)
     rows_for_unsorted = []
     for index, row in unsorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_rate_unsorted = get_average_spike_rate_for_unsorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
-                                                                                        row['Round No.'], row['Cell'], time_window)
+        spike_rate_unsorted = get_average_spike_rate_for_unsorted_cell_with_time_window(
+            row['Date'].strftime('%Y-%m-%d'),
+            row['Round No.'], row['Cell'], time_window)
         rows_for_unsorted.append(spike_rate_unsorted)
     avg_spike_rate_for_unsorted = pd.concat(rows_for_unsorted)
     print(avg_spike_rate_for_unsorted)
@@ -268,18 +277,19 @@ if __name__ == '__main__':
     unsorted_spike_rates_zombies = avg_spike_rate_for_unsorted[required_columns]
     print(unsorted_spike_rates_zombies)
 
+    # sorted cells
     rows_for_sorted_cells = []
     for index, row in sorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
         spike_rate_sorted = get_average_spike_rate_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
-                                                                                    row['Round No.'], row['Cell'], time_window)
+                                                                                    row['Round No.'], row['Cell'],
+                                                                                    time_window)
         rows_for_sorted_cells.append(spike_rate_sorted)
     avg_spike_rate_for_sorted = pd.concat(rows_for_sorted_cells)
     zombies_columns = [col for col in zombies if col in avg_spike_rate_for_sorted.columns]
     required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
                                           col in avg_spike_rate_for_sorted.columns]
     sorted_spike_rates_zombies = avg_spike_rate_for_sorted[required_columns]
-
 
     """
 
@@ -299,9 +309,12 @@ if __name__ == '__main__':
     aff_beh, Sm_arrow_aff, Sarrow_m_aff = social_data_processor.partition_behavior_variance_from_excel_file(
         'feature_df_affiliation.xlsx')
 
-    X_agon, agon_feature_names = construct_feature_matrix_from_behavior_data(monkey, agon_beh, Sm_arrow_agon, Sarrow_m_agon, 'Agonism')
-    X_sub, sub_feature_names = construct_feature_matrix_from_behavior_data(monkey, sub_beh, Sm_arrow_sub, Sarrow_m_sub, 'Submission')
-    X_aff, aff_feature_names = construct_feature_matrix_from_behavior_data(monkey, aff_beh, Sm_arrow_aff, Sarrow_m_aff, 'Affiliation')
+    X_agon, agon_feature_names = construct_feature_matrix_from_behavior_data(monkey, agon_beh, Sm_arrow_agon,
+                                                                             Sarrow_m_agon, 'Agonism')
+    X_sub, sub_feature_names = construct_feature_matrix_from_behavior_data(monkey, sub_beh, Sm_arrow_sub, Sarrow_m_sub,
+                                                                           'Submission')
+    X_aff, aff_feature_names = construct_feature_matrix_from_behavior_data(monkey, aff_beh, Sm_arrow_aff, Sarrow_m_aff,
+                                                                           'Affiliation')
 
     run_single_feature_linear_regression_analysis_individual_cells(X_agon, sorted_spike_rates_zombies,
                                                                    agon_feature_names, 'Agonism')
@@ -345,4 +358,3 @@ if __name__ == '__main__':
     #
     # plt.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/single_feature_r_squared_histograms/{location}_Submission_marked')
     # plt.show()
-
