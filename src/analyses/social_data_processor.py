@@ -115,15 +115,22 @@ def generate_feature_matrix_from_edge_list(edge_list, monkey_group):
 
 
 if __name__ == '__main__':
-    social_data = SocialDataReader().social_data
+    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+    bestfrans = [member.value for name, member in Monkey.__members__.items() if name.startswith('B_')]
+
+    social_data_reader = SocialDataReader(file_name="BestFrans_RawData_20240618.xlsx")
+    social_data = social_data_reader.social_data
+
     # Agonistic
     agonistic_behaviors = list(Agonistic)
     agon = extract_specific_social_behavior(social_data, agonistic_behaviors)
     # Counting specific behaviors and saving the data table as excel
     # agon_behavior_specific_count = agon.groupby('Behavior').apply(lambda x: x.groupby(['Focal Name', 'Social Modifier']).size()).reset_index(name='Count')
     # agon_behavior_specific_count.columns = ['Behavior', 'Actor', 'Receiver', 'Count']
-    # agon_behavior_specific_count.to_excel('frequency_of_specific_behavior_agonism.xlsx')
+    # agon_behavior_specific_count.to_excel('bestfrans_frequency_of_specific_behavior_agonism.xlsx')
     edge_list_agon = generate_edge_list_from_extracted_interactions(agon)
+    agonistic_feature_df = generate_feature_matrix_from_edge_list(edge_list_agon, bestfrans)
+    agonistic_feature_df.to_excel('bestfrans_feature_df_agonism.xlsx')
 
     # Submissive
     submissive_behaviors = list(Submissive)
@@ -131,8 +138,10 @@ if __name__ == '__main__':
     # Counting specific behaviors and saving the data table as excel
     # sub_behavior_specific_count = sub.groupby('Behavior').apply(lambda x: x.groupby(['Focal Name', 'Social Modifier']).size()).reset_index(name='Count')
     # sub_behavior_specific_count.columns = ['Behavior', 'Actor', 'Receiver', 'Count']
-    # sub_behavior_specific_count.to_excel('frequency_of_specific_behavior_submission.xlsx')
+    # sub_behavior_specific_count.to_excel('bestfrans_frequency_of_specific_behavior_submission.xlsx')
     edge_list_sub = generate_edge_list_from_extracted_interactions(sub)
+    submissive_feature_df = generate_feature_matrix_from_edge_list(edge_list_sub, bestfrans)
+    submissive_feature_df.to_excel('bestfrans_feature_df_submission.xlsx')
 
     # Affiliative
     affiliative_behaviors = list(Affiliative)
@@ -140,20 +149,13 @@ if __name__ == '__main__':
     # Counting specific behaviors and saving the data table as excel
     # aff_behavior_specific_count = aff.groupby('Behavior').apply(lambda x: x.groupby(['Focal Name', 'Social Modifier']).size()).reset_index(name='Count')
     # aff_behavior_specific_count.columns = ['Behavior', 'Actor', 'Receiver', 'Count']
-    # aff_behavior_specific_count.to_excel('frequency_of_specific_behavior_affiliation.xlsx')
+    # aff_behavior_specific_count.to_excel('bestfrans_frequency_of_specific_behavior_affiliation.xlsx')
     edge_list_aff = generate_edge_list_from_extracted_interactions(aff)
+    affiliative_feature_df = generate_feature_matrix_from_edge_list(edge_list_aff, bestfrans)
+    affiliative_feature_df.to_excel('bestfrans_feature_df_affiliative.xlsx')
 
     # Get genealogy matrix
-    excel_data_reader = ExcelDataReader(file_name='genealogy_matrix.xlsx')
-    genealogy_data = excel_data_reader.get_first_sheet()
-    print(genealogy_data)
-    genealogy_data['Focal Name'] = genealogy_data['Focal Name'].astype(str)
-
-    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
-    matrix = generate_feature_matrix_from_edge_list(edge_list_agon, zombies)
-
-    # Normalize
-    # cols_to_normalize = feature_df.select_dtypes(include='int64').columns[1:]
-    # normalized_cols = feature_df[cols_to_normalize] / feature_df[cols_to_normalize].max()
-    # normalized_df = pd.concat([feature_df.iloc[:, 0], normalized_cols, feature_df.select_dtypes(exclude='int64')], axis=1)
-    # print(normalized_df.shape)
+    # excel_data_reader = ExcelDataReader(file_name='genealogy_matrix.xlsx')
+    # genealogy_data = excel_data_reader.get_first_sheet()
+    # print(genealogy_data)
+    # genealogy_data['Focal Name'] = genealogy_data['Focal Name'].astype(str)

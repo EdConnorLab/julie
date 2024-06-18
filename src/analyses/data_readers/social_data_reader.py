@@ -3,8 +3,8 @@ from excel_data_reader import ExcelDataReader
 
 class SocialDataReader(ExcelDataReader):
 
-    def __init__(self):
-        super().__init__(file_name='../../../resources/ZombiesFinalRawData.xlsx')
+    def __init__(self, file_name):
+        super().__init__(file_name)
         self.raw_social_data = self.get_raw_social_data()
         self.social_data = self.clean_raw_social_data()
 
@@ -76,7 +76,7 @@ class SocialDataReader(ExcelDataReader):
 
     def validate_number_of_interval_datapoints(self, social_data):
 
-        ''' CHECK NUMBER OF INTERVAL DATA '''
+        """ CHECK NUMBER OF INTERVAL DATA """
         # Create a mask to check if 'Behavior Abbrev' starts with 'I'
         mask = social_data['Behavior Abbrev'].str.startswith('I')
 
