@@ -2,6 +2,10 @@ from enum import Enum
 
 
 class Monkey(Enum):
+    pass
+
+
+class Zombies(Monkey):
     # Zombies
     Z_M1 = "7124"
     Z_F1 = "69X"
@@ -14,6 +18,8 @@ class Monkey(Enum):
     Z_J1 = "87J"
     Z_J2 = "151J"
 
+
+class BestFrans(Monkey):
     # Best Frans
     B_M1 = "G701"
     B_F1 = "14F"
@@ -21,6 +27,8 @@ class Monkey(Enum):
     B_F3 = "101G"
     B_J1 = "19J"
 
+
+class Instigators(Monkey):
     # Instigators
     I_M1 = "G942"
     I_F1 = "35Y"
@@ -37,6 +45,8 @@ class Monkey(Enum):
     I_J3 = "114J"
     I_J4 = "134J"
 
+
+class StrangerThings(Monkey):
     # Stranger Things
     S_M1 = "DF2I"
     S_F1 = "68Y"
