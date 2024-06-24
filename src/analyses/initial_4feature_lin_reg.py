@@ -11,6 +11,8 @@ import spike_rate_computation
 from monkey_names import Monkey
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from single_channel_analysis import read_pickle
+from spike_count import get_spike_count_for_unsorted_cell_with_time_window, \
+    get_spike_count_for_sorted_cell_with_time_window
 
 
 def construct_feature_matrix_from_behavior_data(monkey_of_interest, behavior_data, Sm_arrow, Sarrow_m, behavior_type):
@@ -255,50 +257,90 @@ def get_average_spike_rate_for_sorted_cell_with_time_window(date, round_number, 
 if __name__ == '__main__':
     '''
     Date: 2024-04-28
-    Last Modified: 2024-04-29
+    Last Modified: 2024-06-20
     Generating 12 plots for the list of cells that Ed picked out -- with time window
     '''
     zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+    bestfrans = [member.value for name, member in Monkey.__members__.items() if name.startswith('B_')]
     sorted_cells, unsorted_cells = get_metadata_of_specific_cells()
 
     # unsorted cells
     unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(channel_enum_resolvers.convert_to_enum)
-    rows_for_unsorted = []
+    spike_rate_rows_for_unsorted = []
     for index, row in unsorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
         spike_rate_unsorted = get_average_spike_rate_for_unsorted_cell_with_time_window(
             row['Date'].strftime('%Y-%m-%d'),
             row['Round No.'], row['Cell'], time_window)
-        rows_for_unsorted.append(spike_rate_unsorted)
-    avg_spike_rate_for_unsorted = pd.concat(rows_for_unsorted)
-    print(avg_spike_rate_for_unsorted)
-    zombies_columns = [col for col in zombies if col in avg_spike_rate_for_unsorted.columns]
-    required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+        spike_rate_rows_for_unsorted.append(spike_rate_unsorted)
+    avg_spike_rate_for_unsorted = pd.concat(spike_rate_rows_for_unsorted)
+    bestfrans_columns = [col for col in bestfrans if col in avg_spike_rate_for_unsorted.columns]
+    required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
                                           col in avg_spike_rate_for_unsorted.columns]
-    unsorted_spike_rates_zombies = avg_spike_rate_for_unsorted[required_columns]
-    print(unsorted_spike_rates_zombies)
+    unsorted_spike_rates_bestfrans = avg_spike_rate_for_unsorted[required_columns]
+    # print(unsorted_spike_rates_bestfrans)
+    # unsorted_spike_rates_bestfrans.to_excel('unsorted_spike_rates_bestfrans.xlsx')
+    # zombies_columns = [col for col in zombies if col in avg_spike_rate_for_unsorted.columns]
+    # required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+    #                                       col in avg_spike_rate_for_unsorted.columns]
+    # unsorted_spike_rates_zombies = avg_spike_rate_for_unsorted[required_columns]
+
+    spike_count_rows_for_unsorted = []
+    for index, row in unsorted_cells.iterrows():
+        time_window = (row['Time Window Start'], row['Time Window End'])
+        spike_count_unsorted = get_spike_count_for_unsorted_cell_with_time_window(
+            row['Date'].strftime('%Y-%m-%d'),
+            row['Round No.'], row['Cell'], time_window)
+        spike_count_rows_for_unsorted.append(spike_count_unsorted)
+    spike_count_for_unsorted = pd.concat(spike_count_rows_for_unsorted)
+    bestfrans_columns = [col for col in bestfrans if col in spike_count_for_unsorted.columns]
+    required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+                                            col in spike_count_for_unsorted.columns]
+    unsorted_spike_count_bestfrans = spike_count_for_unsorted[required_columns]
+    print(unsorted_spike_rates_bestfrans)
+    unsorted_spike_count_bestfrans.to_excel('unsorted_spike_count_bestfrans.xlsx')
 
     # sorted cells
-    rows_for_sorted_cells = []
+    # rows_for_sorted_cells = []
+    # for index, row in sorted_cells.iterrows():
+    #     time_window = (row['Time Window Start'], row['Time Window End'])
+    #     spike_rate_sorted = get_average_spike_rate_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
+    #                                                                                 row['Round No.'], row['Cell'],
+    #                                                                                 time_window)
+    #     rows_for_sorted_cells.append(spike_rate_sorted)
+    # avg_spike_rate_for_sorted = pd.concat(rows_for_sorted_cells)
+    # bestfrans_columns = [col for col in bestfrans if col in avg_spike_rate_for_sorted.columns]
+    # required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+    #                                       col in avg_spike_rate_for_sorted.columns]
+    # sorted_spike_rates_bestfrans = avg_spike_rate_for_sorted[required_columns]
+    # print(sorted_spike_rates_bestfrans)
+    # sorted_spike_rates_bestfrans.to_excel('sorted_spike_rates_bestfrans.xlsx')
+    # zombies_columns = [col for col in zombies if col in avg_spike_rate_for_sorted.columns]
+    # required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+    #                                       col in avg_spike_rate_for_sorted.columns]
+    # sorted_spike_rates_zombies = avg_spike_rate_for_sorted[required_columns]
+
+
+    spike_count_rows_for_sorted_cells = []
     for index, row in sorted_cells.iterrows():
         time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_rate_sorted = get_average_spike_rate_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
-                                                                                    row['Round No.'], row['Cell'],
-                                                                                    time_window)
-        rows_for_sorted_cells.append(spike_rate_sorted)
-    avg_spike_rate_for_sorted = pd.concat(rows_for_sorted_cells)
-    zombies_columns = [col for col in zombies if col in avg_spike_rate_for_sorted.columns]
-    required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-                                          col in avg_spike_rate_for_sorted.columns]
-    sorted_spike_rates_zombies = avg_spike_rate_for_sorted[required_columns]
-
+        spike_count_sorted = get_spike_count_for_sorted_cell_with_time_window(
+            row['Date'].strftime('%Y-%m-%d'), row['Round No.'], row['Cell'],time_window)
+        spike_count_rows_for_sorted_cells.append(spike_count_sorted)
+    spike_count_for_sorted = pd.concat(spike_count_rows_for_sorted_cells)
+    bestfrans_columns = [col for col in bestfrans if col in spike_count_for_sorted.columns]
+    required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
+                                          col in spike_count_for_sorted.columns]
+    sorted_spike_count_bestfrans = spike_count_for_sorted[required_columns]
+    print(sorted_spike_count_bestfrans)
+    sorted_spike_count_bestfrans.to_excel('sorted_spike_count_bestfrans.xlsx')
     """
 
     Looking at each neuron using average spikes rate over 10 trials
     1D analysis for different types of behaviors (affiliation, submission, aggression)
 
     """
-
+    '''
     # Get all experimental round information
     metadata_for_regression = get_metadata_for_preliminary_analysis()
 
@@ -326,7 +368,7 @@ if __name__ == '__main__':
     # run_single_feature_linear_regression_analysis(X_agon, metadata_for_regression, agon_feature_names, 'agonism')
     # run_single_feature_linear_regression_analysis(X_sub, metadata_for_regression, sub_feature_names, 'submission')
     # run_single_feature_linear_regression_analysis(X_aff, metadata_for_regression, aff_feature_names, 'affiliation')
-
+    '''
     """
     Generating R-squared histograms
     
