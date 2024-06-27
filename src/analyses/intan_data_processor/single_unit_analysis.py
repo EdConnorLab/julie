@@ -33,6 +33,16 @@ def main():
     # plt.show()
 
 
+def read_sorted_data(round_path, sorted_spikes_filename='sorted_spikes.pkl', compiled_trials_filename='compiled.pk1'):
+    compiled_trials_filepath = os.path.join(round_path, compiled_trials_filename)
+    raw_trial_data = pd.read_pickle(compiled_trials_filepath).reset_index(drop=True)
+    rhd_file_path = os.path.join(round_path, 'info.rhd')
+    sorted_spikes_filepath = os.path.join(round_path, sorted_spikes_filename)
+    sorted_spikes = read_pickle(sorted_spikes_filepath)
+    sample_rate = load_intan_rhd_format.read_data(rhd_file_path)["frequency_parameters"]['amplifier_sample_rate']
+    sorted_data = calculate_spike_timestamps(raw_trial_data, sorted_spikes, sample_rate)
+    return sorted_data
+
 def calculate_spike_timestamps(df: pd.DataFrame, spike_indices_by_unit_by_channel: dict, sample_rate: int):
     """
     Calculates spike timestamps for each row in the DataFrame.
