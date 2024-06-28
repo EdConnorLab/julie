@@ -126,4 +126,3 @@ def count_spikes_from_raw_trial_data(raw_trial_data, valid_channels):
         spike_count_per_channel[monkey] = pd.Series(monkey_spike_counts)
     return spike_count_per_channel
 
-

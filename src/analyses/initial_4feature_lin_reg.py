@@ -7,6 +7,7 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from statsmodels.regression.linear_model import OLS
 import channel_enum_resolvers
 from single_unit_analysis import read_sorted_data
+from spike_count import count_spikes_for_specific_cell_time_windowed
 from spike_rate_computation import compute_average_spike_rate_for_single_neuron_for_specific_time_window, \
     get_average_spike_rates_for_each_monkey
 from monkey_names import Monkey, Zombies, BestFrans
@@ -51,6 +52,39 @@ def get_metadata_for_list_of_cells_with_time_window():
 
     return metadata_subset
 
+def get_spike_count_for_single_neuron_with_specific_time_window(cell_metadata):
+    reader = RecordingMetadataReader()
+    rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
+    experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
+
+    all_spike_count = pd.DataFrame()
+    for _, row in experimental_rounds.iterrows():
+        pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'].strftime("%Y-%m-%d"), row['Round No.'])
+        raw_trial_data = read_pickle(pickle_filepath)
+
+        sorted_file = round_dir_path / 'sorted_spikes.pkl'
+        if sorted_file.exists():
+            sorted_data = read_sorted_data(round_dir_path)
+
+        cells = cell_metadata[((cell_metadata['Date'] == row['Date']) & (cell_metadata['Round No.'] == row['Round No.']))]
+
+        for _, cell in cells.iterrows():
+            if 'Unit' not in cell['Cell']:  # unsorted cells
+                cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
+                unsorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(raw_trial_data, cell['Cell'],
+                                                                                          cell['Time Window'])
+                unsorted_cells_spike_count['Date'] = row['Date']
+                unsorted_cells_spike_count['Round No.'] = row['Round No.']
+                all_spike_count = pd.concat([unsorted_cells_spike_count, all_spike_count])
+            else:  # sorted cells
+                sorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(
+                    sorted_data, cell['Cell'], cell['Time Window'])
+                sorted_cells_spike_count['Date'] = row['Date']
+                sorted_cells_spike_count['Round No.'] = row['Round No.']
+                all_spike_count = pd.concat([sorted_cells_spike_count, all_spike_count])
+
+    return all_spike_count
+
 
 def compute_average_spike_rates_for_list_of_cells_with_time_windows(cell_metadata):
     reader = RecordingMetadataReader()
@@ -83,11 +117,7 @@ def compute_average_spike_rates_for_list_of_cells_with_time_windows(cell_metadat
                 sorted_cells_spike_rates['Round No.'] = row['Round No.']
                 all_spike_rates = pd.concat([sorted_cells_spike_rates, all_spike_rates])
 
-    all_spike_rates = all_spike_rates.dropna(subset=[col for col in all_spike_rates.columns if col != 'NewMonkey']) # dropping any NaN rows
     return all_spike_rates
-
-
-
 
 
 def create_overall_plot_for_single_feature_linear_regression_analysis(feature_matrix, response):
@@ -269,9 +299,11 @@ if __name__ == '__main__':
     zombies = Zombies.__members__.items()
     bestfrans = BestFrans.__members__.items()
     time_windowed_cells = get_metadata_for_list_of_cells_with_time_window()
-    spike_rates = compute_average_spike_rates_for_list_of_cells_with_time_windows(time_windowed_cells)
-    print(spike_rates)
+    # spike_rates = compute_average_spike_rates_for_list_of_cells_with_time_windows(time_windowed_cells)
+    # print(spike_rates)
 
+    spike_counts = get_spike_count_for_single_neuron_with_specific_time_window(time_windowed_cells)
+    print(spike_counts)
     """
     Looking at each neuron using average spikes rate over 10 trials
     1D analysis for different types of behaviors (affiliation, submission, aggression)
