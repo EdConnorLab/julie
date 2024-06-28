@@ -50,7 +50,7 @@ if __name__ == '__main__':
     for index, row in ER_data.iterrows():
         date = row['Date'].strftime('%Y-%m-%d')
         round = row['Round No.']
-        spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round)
+        spike_rates = spike_rate_computation.get_average_spike_rates_for_each_monkey(date, round)
         zombies_names = zombies_df['Focal Name'].tolist()
         zombies_spike_rates = spike_rates.reindex(columns=zombies_names, fill_value=0)
         # Extract values from a column as a NumPy array
