@@ -6,13 +6,12 @@ from pathlib import Path
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from statsmodels.regression.linear_model import OLS
 import channel_enum_resolvers
-import social_data_processor
-import spike_rate_computation
-from monkey_names import Monkey
+from single_unit_analysis import read_sorted_data
+from spike_rate_computation import compute_average_spike_rate_for_single_neuron_for_specific_time_window, \
+    get_average_spike_rates_for_each_monkey
+from monkey_names import Monkey, Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from single_channel_analysis import read_pickle
-from spike_count import get_spike_count_for_unsorted_cell_with_time_window, \
-    get_spike_count_for_sorted_cell_with_time_window
 
 
 def construct_feature_matrix_from_behavior_data(monkey_of_interest, behavior_data, Sm_arrow, Sarrow_m, behavior_type):
@@ -38,22 +37,58 @@ def get_metadata_for_preliminary_analysis():
     metadata_reader = RecordingMetadataReader()
     raw_metadata = metadata_reader.get_raw_data()
     metadata_for_prelim_analysis = raw_metadata.parse('InitialRegression')
-
     return metadata_for_prelim_analysis
 
 
-def get_metadata_of_specific_cells():
+def get_metadata_for_list_of_cells_with_time_window():
     metadata_reader = RecordingMetadataReader()
     raw_metadata = metadata_reader.get_raw_data()
-    metadata_for_prelim_analysis = raw_metadata.parse('Cells_fromEd')
-    metadata_subset = metadata_for_prelim_analysis[['Date', 'Round No.', 'Cell',
-                                                    'Time Window Start', 'Time Window End', 'Location']]
-    metadata_cleaned = metadata_subset.dropna()
-    mask = metadata_cleaned['Cell'].str.contains('Unit')
-    metadata_sorted_cells = metadata_cleaned[mask]
-    metadata_unsorted_cells = metadata_cleaned[~mask]
+    metadata_for_cell_list = raw_metadata.parse('Cells_fromEd')
+    metadata_for_cell_list = metadata_for_cell_list.dropna(subset=['Time Window Start', 'Time Window End'])
+    metadata_for_cell_list['Time Window'] = metadata_for_cell_list.apply(
+        lambda row: (row['Time Window Start'], row['Time Window End']), axis=1)
+    metadata_subset = metadata_for_cell_list[['Date', 'Round No.', 'Cell', 'Time Window']]
 
-    return metadata_sorted_cells, metadata_unsorted_cells
+    return metadata_subset
+
+
+def compute_average_spike_rates_for_list_of_cells_with_time_windows(cell_metadata):
+    reader = RecordingMetadataReader()
+    rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
+    experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
+
+    all_spike_rates = pd.DataFrame()
+    for _, row in experimental_rounds.iterrows():
+        pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'].strftime("%Y-%m-%d"), row['Round No.'])
+        raw_trial_data = read_pickle(pickle_filepath)
+
+        sorted_file = round_dir_path / 'sorted_spikes.pkl'
+        if sorted_file.exists():
+            sorted_data = read_sorted_data(round_dir_path)
+
+        cells = cell_metadata[((cell_metadata['Date'] == row['Date']) & (cell_metadata['Round No.'] == row['Round No.']))]
+
+        for _, cell in cells.iterrows():
+            if 'Unit' not in cell['Cell']:  # unsorted cells
+                cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
+                unsorted_cells_spike_rates = compute_average_spike_rate_for_single_neuron_for_specific_time_window(
+                    raw_trial_data, cell['Cell'], cell['Time Window'])
+                unsorted_cells_spike_rates['Date'] = row['Date']
+                unsorted_cells_spike_rates['Round No.'] = row['Round No.']
+                all_spike_rates = pd.concat([unsorted_cells_spike_rates, all_spike_rates])
+            else:  # sorted cells
+                sorted_cells_spike_rates = compute_average_spike_rate_for_single_neuron_for_specific_time_window(
+                    sorted_data, cell['Cell'], cell['Time Window'])
+                sorted_cells_spike_rates['Date'] = row['Date']
+                sorted_cells_spike_rates['Round No.'] = row['Round No.']
+                all_spike_rates = pd.concat([sorted_cells_spike_rates, all_spike_rates])
+
+    all_spike_rates = all_spike_rates.dropna(subset=[col for col in all_spike_rates.columns if col != 'NewMonkey']) # dropping any NaN rows
+    return all_spike_rates
+
+
+
+
 
 def create_overall_plot_for_single_feature_linear_regression_analysis(feature_matrix, response):
     """
@@ -62,7 +97,7 @@ def create_overall_plot_for_single_feature_linear_regression_analysis(feature_ma
 
     @param feature_matrix:
     """
-    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+    zombies = Zombies.__members__.items()
     zombies.remove('81G')
     fig = plt.figure(figsize=(26, 10))
     outer_grid = GridSpec(1, 3, figure=fig)
@@ -150,7 +185,7 @@ def run_single_feature_linear_regression_analysis(X, metadata_for_regression, fe
         date = row['Date'].strftime('%Y-%m-%d')
         round_no = row['Round No.']
         location = row['Location']
-        spike_rates = spike_rate_computation.get_average_spike_rates_for_each_monkey(date, round_no)
+        spike_rates = get_average_spike_rates_for_each_monkey(date, round_no)
         spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
         labels = spike_rates_zombies.columns.tolist()
         for ind, zombies_row in spike_rates_zombies.iterrows():
@@ -204,7 +239,7 @@ def generate_r_squared_histogram_for_specific_population(X, feature_names, locat
     for index, row in neural_population.iterrows():
         date = row['Date'].strftime('%Y-%m-%d')
         round_no = row['Round No.']
-        spike_rates = spike_rate_computation.get_average_spike_rates_for_each_monkey(date, round_no)
+        spike_rates = get_average_spike_rates_for_each_monkey(date, round_no)
         spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
 
         for ind, zombies_row in spike_rates_zombies.iterrows():
@@ -224,118 +259,20 @@ def generate_r_squared_histogram_for_specific_population(X, feature_names, locat
     return results_df
 
 
-def get_average_spike_rate_for_unsorted_cell_with_time_window(date, round_number, unsorted_cell, time_window):
-    metadata_reader = RecordingMetadataReader()
-    pickle_filename = metadata_reader.get_pickle_filename_for_specific_round(date, round_number)
-    compiled_dir = (Path(__file__).parent.parent.parent / 'compiled').resolve()
-    pickle_filepath = os.path.join(compiled_dir, pickle_filename)
-    print(f'Reading pickle file as raw data: {pickle_filepath}')
-    raw_trial_data = read_pickle(pickle_filepath)
-    average_spike_rate_for_unsorted_cell = (spike_rate_computation.compute_avg_spike_rate_for_specific_cell
-                                            (raw_trial_data, unsorted_cell, time_window))
-    average_spike_rate_for_unsorted_cell['Date'] = date
-    average_spike_rate_for_unsorted_cell['Round No.'] = round_number
-    average_spike_rate_for_unsorted_cell['Time Window'] = [time_window]
-    return average_spike_rate_for_unsorted_cell
-
-
-def get_average_spike_rate_for_sorted_cell_with_time_window(date, round_number, sorted_cell, time_window):
-    metadata_reader = RecordingMetadataReader()
-    intan_dir = metadata_reader.get_intan_folder_name_for_specific_round(date, round_number)
-    cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
-    round_path = Path(os.path.join(cortana_path, date, intan_dir))
-    sorted_data = spike_rate_computation.read_sorted_data(round_path)
-    average_spike_rate_for_sorted_cell = (spike_rate_computation.compute_avg_spike_rate_for_specific_cell
-                                          (sorted_data, sorted_cell, time_window))
-    average_spike_rate_for_sorted_cell['Date'] = date
-    average_spike_rate_for_sorted_cell['Round No.'] = round_number
-    average_spike_rate_for_sorted_cell['Time Window'] = [time_window]
-    return average_spike_rate_for_sorted_cell
-
-
 
 if __name__ == '__main__':
     '''
     Date: 2024-04-28
-    Last Modified: 2024-06-20
+    Last Modified: 2024-06-27
     Generating 12 plots for the list of cells that Ed picked out -- with time window
     '''
-    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
-    bestfrans = [member.value for name, member in Monkey.__members__.items() if name.startswith('B_')]
-    sorted_cells, unsorted_cells = get_metadata_of_specific_cells()
+    zombies = Zombies.__members__.items()
+    bestfrans = BestFrans.__members__.items()
+    time_windowed_cells = get_metadata_for_list_of_cells_with_time_window()
+    spike_rates = compute_average_spike_rates_for_list_of_cells_with_time_windows(time_windowed_cells)
+    print(spike_rates)
 
-    # unsorted cells
-    unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(channel_enum_resolvers.convert_to_enum)
-    spike_rate_rows_for_unsorted = []
-    for index, row in unsorted_cells.iterrows():
-        time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_rate_unsorted = get_average_spike_rate_for_unsorted_cell_with_time_window(
-            row['Date'].strftime('%Y-%m-%d'),
-            row['Round No.'], row['Cell'], time_window)
-        spike_rate_rows_for_unsorted.append(spike_rate_unsorted)
-    avg_spike_rate_for_unsorted = pd.concat(spike_rate_rows_for_unsorted)
-    bestfrans_columns = [col for col in bestfrans if col in avg_spike_rate_for_unsorted.columns]
-    required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-                                          col in avg_spike_rate_for_unsorted.columns]
-    unsorted_spike_rates_bestfrans = avg_spike_rate_for_unsorted[required_columns]
-    # print(unsorted_spike_rates_bestfrans)
-    # unsorted_spike_rates_bestfrans.to_excel('unsorted_spike_rates_bestfrans.xlsx')
-    # zombies_columns = [col for col in zombies if col in avg_spike_rate_for_unsorted.columns]
-    # required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-    #                                       col in avg_spike_rate_for_unsorted.columns]
-    # unsorted_spike_rates_zombies = avg_spike_rate_for_unsorted[required_columns]
-
-    spike_count_rows_for_unsorted = []
-    for index, row in unsorted_cells.iterrows():
-        time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_count_unsorted = get_spike_count_for_unsorted_cell_with_time_window(
-            row['Date'].strftime('%Y-%m-%d'),
-            row['Round No.'], row['Cell'], time_window)
-        spike_count_rows_for_unsorted.append(spike_count_unsorted)
-    spike_count_for_unsorted = pd.concat(spike_count_rows_for_unsorted)
-    bestfrans_columns = [col for col in bestfrans if col in spike_count_for_unsorted.columns]
-    required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-                                            col in spike_count_for_unsorted.columns]
-    unsorted_spike_count_bestfrans = spike_count_for_unsorted[required_columns]
-    print(unsorted_spike_rates_bestfrans)
-    unsorted_spike_count_bestfrans.to_excel('unsorted_spike_count_bestfrans.xlsx')
-
-    # sorted cells
-    # rows_for_sorted_cells = []
-    # for index, row in sorted_cells.iterrows():
-    #     time_window = (row['Time Window Start'], row['Time Window End'])
-    #     spike_rate_sorted = get_average_spike_rate_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
-    #                                                                                 row['Round No.'], row['Cell'],
-    #                                                                                 time_window)
-    #     rows_for_sorted_cells.append(spike_rate_sorted)
-    # avg_spike_rate_for_sorted = pd.concat(rows_for_sorted_cells)
-    # bestfrans_columns = [col for col in bestfrans if col in avg_spike_rate_for_sorted.columns]
-    # required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-    #                                       col in avg_spike_rate_for_sorted.columns]
-    # sorted_spike_rates_bestfrans = avg_spike_rate_for_sorted[required_columns]
-    # print(sorted_spike_rates_bestfrans)
-    # sorted_spike_rates_bestfrans.to_excel('sorted_spike_rates_bestfrans.xlsx')
-    # zombies_columns = [col for col in zombies if col in avg_spike_rate_for_sorted.columns]
-    # required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-    #                                       col in avg_spike_rate_for_sorted.columns]
-    # sorted_spike_rates_zombies = avg_spike_rate_for_sorted[required_columns]
-
-
-    spike_count_rows_for_sorted_cells = []
-    for index, row in sorted_cells.iterrows():
-        time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_count_sorted = get_spike_count_for_sorted_cell_with_time_window(
-            row['Date'].strftime('%Y-%m-%d'), row['Round No.'], row['Cell'],time_window)
-        spike_count_rows_for_sorted_cells.append(spike_count_sorted)
-    spike_count_for_sorted = pd.concat(spike_count_rows_for_sorted_cells)
-    bestfrans_columns = [col for col in bestfrans if col in spike_count_for_sorted.columns]
-    required_columns = bestfrans_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-                                          col in spike_count_for_sorted.columns]
-    sorted_spike_count_bestfrans = spike_count_for_sorted[required_columns]
-    print(sorted_spike_count_bestfrans)
-    sorted_spike_count_bestfrans.to_excel('sorted_spike_count_bestfrans.xlsx')
     """
-
     Looking at each neuron using average spikes rate over 10 trials
     1D analysis for different types of behaviors (affiliation, submission, aggression)
 
