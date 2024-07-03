@@ -16,7 +16,7 @@ from single_channel_analysis import read_pickle
 
 
 def construct_feature_matrix_from_behavior_data(monkey_of_interest, behavior_data, Sm_arrow, Sarrow_m, behavior_type):
-    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
+    zombies = [member.value for name, member in Zombies.__members__.items()]
     subject_index = zombies.index(monkey_of_interest)
     subjects_attraction_to_behavior = behavior_data.iloc[:, subject_index]
     behavior_by_subject = pd.Series(behavior_data.iloc[subject_index, :].values)
@@ -75,12 +75,14 @@ def get_spike_count_for_single_neuron_with_specific_time_window(cell_metadata):
                                                                                           cell['Time Window'])
                 unsorted_cells_spike_count['Date'] = row['Date']
                 unsorted_cells_spike_count['Round No.'] = row['Round No.']
+                unsorted_cells_spike_count['Time Window'] = cell['Time Window']
                 all_spike_count = pd.concat([unsorted_cells_spike_count, all_spike_count])
             else:  # sorted cells
                 sorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(
                     sorted_data, cell['Cell'], cell['Time Window'])
                 sorted_cells_spike_count['Date'] = row['Date']
                 sorted_cells_spike_count['Round No.'] = row['Round No.']
+                sorted_cells_spike_count['Time Window'] = cell['Time Window']
                 all_spike_count = pd.concat([sorted_cells_spike_count, all_spike_count])
 
     return all_spike_count
@@ -109,12 +111,14 @@ def compute_average_spike_rates_for_list_of_cells_with_time_windows(cell_metadat
                     raw_trial_data, cell['Cell'], cell['Time Window'])
                 unsorted_cells_spike_rates['Date'] = row['Date']
                 unsorted_cells_spike_rates['Round No.'] = row['Round No.']
+                unsorted_cells_spike_rates['Time Window'] = cell[['Time Window']]
                 all_spike_rates = pd.concat([unsorted_cells_spike_rates, all_spike_rates])
             else:  # sorted cells
                 sorted_cells_spike_rates = compute_average_spike_rate_for_single_neuron_for_specific_time_window(
                     sorted_data, cell['Cell'], cell['Time Window'])
                 sorted_cells_spike_rates['Date'] = row['Date']
                 sorted_cells_spike_rates['Round No.'] = row['Round No.']
+                sorted_cells_spike_rates['Time Window'] = cell[['Time Window']]
                 all_spike_rates = pd.concat([sorted_cells_spike_rates, all_spike_rates])
 
     return all_spike_rates
