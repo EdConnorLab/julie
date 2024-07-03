@@ -2,10 +2,11 @@ import math
 import numpy as np
 import pandas as pd
 
-import channel_enum_resolvers
-import initial_4feature_lin_reg
+
+from initial_4feature_lin_reg import get_spike_count_for_single_neuron_with_time_window, \
+    get_metadata_for_list_of_cells_with_time_window
 import spike_count
-from monkey_names import Monkey
+from monkey_names import Monkey, Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from scipy.stats import f_oneway
 
@@ -39,7 +40,7 @@ def perform_anova_on_dataframe_rows_for_time_windowed(df):
         # Perform OneWay ANOVA
         f_val, p_val = f_oneway(*groups)
         results.append({'Date': row['Date'], 'Round No.': row['Round No.'],
-                        'Time Window': row['Time Window'],
+                        # 'Time Window': row['Time Window'],
                         'Cell': index, 'F Value': f_val, 'P Value': p_val})
         if p_val < 0.05:
 
@@ -47,7 +48,7 @@ def perform_anova_on_dataframe_rows_for_time_windowed(df):
             significant_results.append({
                 'Date': row['Date'],
                 'Round No.': row['Round No.'],
-                'Time Window': row['Time Window'],
+                # 'Time Window': row['Time Window'],
                 'Cell': index,
                 'P Value': p_val
             })
@@ -87,54 +88,35 @@ def perform_anova_permutation_test_on_rows(df, num_permutations=1000):
 
 if __name__ == '__main__':
     '''
-    Date: 2024-04-29
+    Date Created : 2024-04-29
     ANOVA for selected cells from Ed (time windowed)
+    
+    Last Updated: 2024-07-03 
+    Latest Updates: running ANOVA for BestFrans
     '''
-    zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
-    sorted_cells, unsorted_cells = initial_4feature_lin_reg.get_metadata_of_specific_cells()
 
-    # unsorted
-    unsorted_cells['Cell'] = unsorted_cells['Cell'].apply(channel_enum_resolvers.convert_to_enum())
-    rows_for_unsorted = []
-    for index, row in unsorted_cells.iterrows():
-        time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_count_unsorted = spike_count.get_spike_count_for_unsorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
-                                                                                  row['Round No.'], row['Cell'],
-                                                                                  time_window)
-        rows_for_unsorted.append(spike_count_unsorted)
-    spike_count_for_unsorted = pd.concat(rows_for_unsorted)
-    zombies_columns = [col for col in zombies if col in spike_count_for_unsorted.columns]
-    required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-                                          col in spike_count_for_unsorted.columns]
-    unsorted_spike_count_zombies = spike_count_for_unsorted[required_columns]
-    print(unsorted_spike_count_zombies)
+    # Get list of monkey names
+    zombies = [member.value for name, member in Zombies.__members__.items()]
+    bestfrans = [member.value for name, member in BestFrans.__members__.items()]
 
-    # Perform ANOVA on unsorted
-    anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(unsorted_spike_count_zombies)
-    anova_results.to_csv('Unsorted_windowed_ANOVA_results.csv')
-    sig_results.to_csv('Unsorted_windowed_ANOVA_significant_results.csv')
+    # Get metadata for list of cells (time windowed)
+    time_windowed_cells = get_metadata_for_list_of_cells_with_time_window()
 
-    # sorted
-    rows_for_sorted = []
-    for index, row in sorted_cells.iterrows():
-        time_window = (row['Time Window Start'], row['Time Window End'])
-        spike_count_sorted = spike_count.get_spike_count_for_sorted_cell_with_time_window(row['Date'].strftime('%Y-%m-%d'),
-                                                                              row['Round No.'], row['Cell'],
-                                                                              time_window)
-        rows_for_sorted.append(spike_count_sorted)
-    spike_count_for_sorted = pd.concat(rows_for_sorted)
-    zombies_columns = [col for col in zombies if col in spike_count_for_sorted.columns]
-    required_columns = zombies_columns + [col for col in ['Date', 'Round No.', 'Time Window'] if
-                                          col in spike_count_for_sorted.columns]
-    sorted_spike_count_zombies = spike_count_for_sorted[required_columns]
-    print(sorted_spike_count_zombies)
+    # calculate spike count
+    spike_count = get_spike_count_for_single_neuron_with_time_window(time_windowed_cells)
+    bestfrans_columns = [col for col in bestfrans if col in spike_count.columns]
+    bestfrans_spike_count = spike_count[bestfrans_columns]
+    # adding in the Date and Round No. columns because above operation got rid of it
+    bestfrans_spike_count['Date'] = spike_count['Date']
+    bestfrans_spike_count['Round No.'] = spike_count['Round No.']
 
-    # Perform ANOVA on sorted
-    anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(sorted_spike_count_zombies)
-    anova_results.to_csv('Sorted_windowed_ANOVA_results.csv')
-    sig_results.to_csv('Sorted_windowed_ANOVA_significant_results.csv')
+    anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(bestfrans_spike_count)
+    sig_results.to_csv('sig_results_for_bestfrans.csv')
+    anova_results.to_csv('Windowed_ANOA_sig_results_BestFrans.csv')
 
     '''
+    Date Created: 2024-04-29
+    Last Updated: 2024-??-??
     ANOVA or PermANOVA on all rounds from metadata
     '''
     # metadata_for_analysis = get_metadata_for_preliminary_analysis()
