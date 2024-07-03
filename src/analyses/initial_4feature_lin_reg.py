@@ -31,6 +31,7 @@ def construct_feature_matrix_from_behavior_data(monkey_of_interest, behavior_dat
     feature_names = [f'Subject\'s attraction to {behavior_type}', f'{behavior_type} by the Subject',
                      f'General {behavior_type}', f'General attraction to {behavior_type}']
     feature_matrix = np.delete(feat.values, subject_index, axis=0)  # delete information on 81G
+    # TODO: this is wrong!!!!  I should delete axis=6 (Cortana's) for general stuff! and others with the monkey_of_interest
     return feature_matrix, feature_names
 
 
@@ -52,7 +53,17 @@ def get_metadata_for_list_of_cells_with_time_window():
 
     return metadata_subset
 
-def get_spike_count_for_single_neuron_with_specific_time_window(cell_metadata):
+
+def get_metadata_for_ANOVA_passed_cells_time_windowed():
+    metadata_reader = RecordingMetadataReader()
+    raw_metadata = metadata_reader.get_raw_data()
+    metadata_for_anova_passed = raw_metadata.parse('ANOVA_passed_windowed')
+    metadata_for_anova_passed['Time Window'] = metadata_for_anova_passed['Time Window'].apply(lambda x: eval(x) if isinstance(x, str) else x)
+    metadata_anova_passed_subset = metadata_for_anova_passed[['Date', 'Round No.', 'Cell', 'Time Window']]
+    return metadata_anova_passed_subset
+
+
+def get_spike_count_for_single_neuron_with_time_window(cell_metadata):
     reader = RecordingMetadataReader()
     rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
     experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
@@ -306,7 +317,7 @@ if __name__ == '__main__':
     # spike_rates = compute_average_spike_rates_for_list_of_cells_with_time_windows(time_windowed_cells)
     # print(spike_rates)
 
-    spike_counts = get_spike_count_for_single_neuron_with_specific_time_window(time_windowed_cells)
+    spike_counts = get_spike_count_for_single_neuron_with_time_window(time_windowed_cells)
     print(spike_counts)
     """
     Looking at each neuron using average spikes rate over 10 trials
