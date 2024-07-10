@@ -2,9 +2,9 @@
 # zombies = [member.value for name, member in Monkey.__members__.items() if name.startswith('Z_')]
 #
 # ''' Looking at average spike rates'''
-# # spike_rates = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-10-05", 1)
-# # matching_indices = zombies_df['Focal Name'].isin(spike_rates.index)
-# # matching_rows = spike_rates.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
+# # second_set_of_time_windowed_cells = spike_rate_analysis.compute_overall_average_spike_rates_for_each_round("2023-10-05", 1)
+# # matching_indices = zombies_df['Focal Name'].isin(second_set_of_time_windowed_cells.index)
+# # matching_rows = second_set_of_time_windowed_cells.loc[zombies_df.loc[matching_indices, 'Focal Name'].values]
 # # spike_rate_df = matching_rows.to_frame(name='Spike Rates')
 # # spike_rate_df['Focal Name'] = spike_rate_df.index
 # # spike_rate_df = pd.merge(zombies_df, spike_rate_df, on='Focal Name', how='left').fillna(0)
@@ -28,8 +28,8 @@
 # ''' Looking at each neuron '''
 # date = "2023-11-28"
 # round_number = 4
-# spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round_number)
-# spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
+# second_set_of_time_windowed_cells = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round_number)
+# spike_rates_zombies = second_set_of_time_windowed_cells[[col for col in zombies if col in second_set_of_time_windowed_cells.columns]]
 # print(spike_rates_zombies.head())
 # labels = spike_rates_zombies.columns.tolist()
 # print(f'Labels: {labels}')
@@ -71,7 +71,7 @@
 #     results_df = pd.DataFrame(all_stat_params, columns=['Date', 'Round', 'Neuron', 'Feature Name', 'R-squared',
 #                                                         'p-value', 'coefficients'])
 #     all_results_df = pd.concat([all_results_df, results_df], ignore_index=True)
-#     all_results_df.to_excel('/home/connorlab/Documents/GitHub/Julie/linear_regression_results/single_feature_results_from_partition.xlsx', index=False)
+#     all_results_df.to_excel('/home/connorlab/Documents/GitHub/Julie/all_cells_linear_regression/single_feature_results_from_partition.xlsx', index=False)
 #     plt.show()
 #
 #
@@ -79,8 +79,8 @@
 # ''' Looking at each neuron two features at a time'''
 # # date = "2023-10-04"
 # # round_number = 3
-# # spike_rates = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round_number)
-# # spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
+# # second_set_of_time_windowed_cells = spike_rate_analysis.get_average_spike_rates_for_each_monkey(date, round_number)
+# # spike_rates_zombies = second_set_of_time_windowed_cells[[col for col in zombies if col in second_set_of_time_windowed_cells.columns]]
 # # print(spike_rates_zombies.head())
 # # labels = spike_rates_zombies.columns.tolist()
 # '''
@@ -117,8 +117,8 @@
 # '''
 #
 # ''' Looking at individual trial '''
-# # spike_rates = spike_rate_analysis.get_spike_rates_for_each_trial("2023-10-04", 3)
-# # spike_rates_zombies = spike_rates[[col for col in zombies if col in spike_rates.columns]]
+# # second_set_of_time_windowed_cells = spike_rate_analysis.get_spike_rates_for_each_trial("2023-10-04", 3)
+# # spike_rates_zombies = second_set_of_time_windowed_cells[[col for col in zombies if col in second_set_of_time_windowed_cells.columns]]
 # # print(spike_rates_zombies.head())
 # #
 # # for index, row in spike_rates_zombies.iterrows():

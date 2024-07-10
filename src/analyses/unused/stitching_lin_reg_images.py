@@ -2,8 +2,8 @@ import os
 from PIL import Image
 
 #
-source_dir = '/linear_regression_results/time_windowed_cells'
-dest_dir = '/linear_regression_results/time_windowed_cells/regression_plots/stitched'
+source_dir = '/all_cells_linear_regression/first_set_of_time_windowed_cells'
+dest_dir = '/all_cells_linear_regression/first_set_of_time_windowed_cells/regression_plots/stitched'
 
 
 ## Stitching Images

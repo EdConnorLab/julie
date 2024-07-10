@@ -6,7 +6,7 @@ import pandas as pd
 from initial_4feature_lin_reg import get_spike_count_for_single_neuron_with_time_window, \
     get_metadata_for_list_of_cells_with_time_window
 import spike_count
-from monkey_names import Monkey, Zombies, BestFrans
+from monkey_names import Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from scipy.stats import f_oneway
 
@@ -100,19 +100,19 @@ if __name__ == '__main__':
     bestfrans = [member.value for name, member in BestFrans.__members__.items()]
 
     # Get metadata for list of cells (time windowed)
-    time_windowed_cells = get_metadata_for_list_of_cells_with_time_window()
+    time_windowed_cells = get_metadata_for_list_of_cells_with_time_window("BestFrans_Cells")
 
     # calculate spike count
     spike_count = get_spike_count_for_single_neuron_with_time_window(time_windowed_cells)
-    bestfrans_columns = [col for col in bestfrans if col in spike_count.columns]
+    bestfrans_columns = [col for col in zombies if col in spike_count.columns]
     bestfrans_spike_count = spike_count[bestfrans_columns]
     # adding in the Date and Round No. columns because above operation got rid of it
     bestfrans_spike_count['Date'] = spike_count['Date']
     bestfrans_spike_count['Round No.'] = spike_count['Round No.']
 
     anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(bestfrans_spike_count)
-    sig_results.to_csv('sig_results_for_bestfrans.csv')
-    anova_results.to_csv('Windowed_ANOA_sig_results_BestFrans.csv')
+    sig_results.to_csv('sig_ANOVA_results_for_2nd_list_zombies.csv')
+    anova_results.to_csv('Windowed_ANOVA_sig_results_Zombies_new.csv')
 
     '''
     Date Created: 2024-04-29

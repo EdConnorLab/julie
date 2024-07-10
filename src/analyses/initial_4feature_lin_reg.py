@@ -42,10 +42,10 @@ def get_metadata_for_preliminary_analysis():
     return metadata_for_prelim_analysis
 
 
-def get_metadata_for_list_of_cells_with_time_window():
+def get_metadata_for_list_of_cells_with_time_window(sheet_name: str):
     metadata_reader = RecordingMetadataReader()
     raw_metadata = metadata_reader.get_raw_data()
-    metadata_for_cell_list = raw_metadata.parse('Cells_fromEd')
+    metadata_for_cell_list = raw_metadata.parse(sheet_name)
     metadata_for_cell_list = metadata_for_cell_list.dropna(subset=['Time Window Start', 'Time Window End'])
     metadata_for_cell_list['Time Window'] = metadata_for_cell_list.apply(
         lambda row: (row['Time Window Start'], row['Time Window End']), axis=1)
@@ -68,33 +68,40 @@ def get_spike_count_for_single_neuron_with_time_window(cell_metadata):
     rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
     experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
 
-    all_spike_count = pd.DataFrame()
+    results = []
     for _, row in experimental_rounds.iterrows():
         pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'].strftime("%Y-%m-%d"), row['Round No.'])
         raw_trial_data = read_pickle(pickle_filepath)
-
         sorted_file = round_dir_path / 'sorted_spikes.pkl'
+
         if sorted_file.exists():
             sorted_data = read_sorted_data(round_dir_path)
 
         cells = cell_metadata[((cell_metadata['Date'] == row['Date']) & (cell_metadata['Round No.'] == row['Round No.']))]
-
         for _, cell in cells.iterrows():
             if 'Unit' not in cell['Cell']:  # unsorted cells
                 cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
                 unsorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(raw_trial_data, cell['Cell'],
                                                                                           cell['Time Window'])
-                unsorted_cells_spike_count['Date'] = row['Date']
-                unsorted_cells_spike_count['Round No.'] = row['Round No.']
-                unsorted_cells_spike_count['Time Window'] = cell['Time Window']
-                all_spike_count = pd.concat([unsorted_cells_spike_count, all_spike_count])
+                unsorted_cells_spike_count_dict = unsorted_cells_spike_count.to_dict(orient='records')[0]
+                unsorted_cells_spike_count_dict['Cell'] = cell['Cell']
+                unsorted_cells_spike_count_dict['Date'] = row['Date']
+                unsorted_cells_spike_count_dict['Round No.'] = row['Round No.']
+                unsorted_cells_spike_count_dict['Time Window'] = cell['Time Window']
+                results.append(unsorted_cells_spike_count_dict)
+
             else:  # sorted cells
                 sorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(
                     sorted_data, cell['Cell'], cell['Time Window'])
-                sorted_cells_spike_count['Date'] = row['Date']
-                sorted_cells_spike_count['Round No.'] = row['Round No.']
-                sorted_cells_spike_count['Time Window'] = cell['Time Window']
-                all_spike_count = pd.concat([sorted_cells_spike_count, all_spike_count])
+                sorted_cells_spike_count_dict = sorted_cells_spike_count.to_dict(orient='records')[0]
+                sorted_cells_spike_count_dict['Cell'] = cell['Cell']
+                sorted_cells_spike_count_dict['Date'] = row['Date']
+                sorted_cells_spike_count_dict['Round No.'] = row['Round No.']
+                sorted_cells_spike_count_dict['Time Window'] = cell['Time Window']
+                results.append(sorted_cells_spike_count_dict)
+
+    all_spike_count = pd.DataFrame(results)
+    all_spike_count.set_index('Cell', inplace=True)
 
     return all_spike_count
 
@@ -104,7 +111,7 @@ def compute_average_spike_rates_for_list_of_cells_with_time_windows(cell_metadat
     rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
     experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
 
-    all_spike_rates = pd.DataFrame()
+    results = []
     for _, row in experimental_rounds.iterrows():
         pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'].strftime("%Y-%m-%d"), row['Round No.'])
         raw_trial_data = read_pickle(pickle_filepath)
@@ -120,17 +127,27 @@ def compute_average_spike_rates_for_list_of_cells_with_time_windows(cell_metadat
                 cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
                 unsorted_cells_spike_rates = compute_average_spike_rate_for_single_neuron_for_specific_time_window(
                     raw_trial_data, cell['Cell'], cell['Time Window'])
-                unsorted_cells_spike_rates['Date'] = row['Date']
-                unsorted_cells_spike_rates['Round No.'] = row['Round No.']
-                unsorted_cells_spike_rates['Time Window'] = cell[['Time Window']]
-                all_spike_rates = pd.concat([unsorted_cells_spike_rates, all_spike_rates])
+
+
+                unsorted_cells_spike_rates_dict = unsorted_cells_spike_rates.to_dict(orient='records')[0]
+                unsorted_cells_spike_rates_dict['Cell'] = cell['Cell']
+                unsorted_cells_spike_rates_dict['Date'] = row['Date']
+                unsorted_cells_spike_rates_dict['Round No.'] = row['Round No.']
+                unsorted_cells_spike_rates_dict['Time Window'] = cell['Time Window']
+                results.append(unsorted_cells_spike_rates_dict)
+
             else:  # sorted cells
                 sorted_cells_spike_rates = compute_average_spike_rate_for_single_neuron_for_specific_time_window(
                     sorted_data, cell['Cell'], cell['Time Window'])
-                sorted_cells_spike_rates['Date'] = row['Date']
-                sorted_cells_spike_rates['Round No.'] = row['Round No.']
-                sorted_cells_spike_rates['Time Window'] = cell[['Time Window']]
-                all_spike_rates = pd.concat([sorted_cells_spike_rates, all_spike_rates])
+                sorted_cells_spike_rates_dict = sorted_cells_spike_rates.to_dict(orient='records')[0]
+                sorted_cells_spike_rates_dict['Cell'] = cell['Cell']
+                sorted_cells_spike_rates_dict['Date'] = row['Date']
+                sorted_cells_spike_rates_dict['Round No.'] = row['Round No.']
+                sorted_cells_spike_rates_dict['Time Window'] = cell['Time Window']
+                results.append(sorted_cells_spike_rates_dict)
+
+    all_spike_rates = pd.DataFrame(results)
+    all_spike_rates.set_index('Cell', inplace=True)
 
     return all_spike_rates
 
@@ -271,7 +288,7 @@ def run_single_feature_linear_regression_analysis(X, metadata_for_regression, fe
                 # plt.show()
     # final_df = pd.DataFrame(all_results, columns=['Date', 'Round No.', 'Cell', 'Feature Name', 'R-squared',
     #                                               'p-value', 'coefficients'])
-    # final_df.to_excel(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/'
+    # final_df.to_excel(f'/home/connorlab/Documents/GitHub/Julie/all_cells_linear_regression/'
     #                   f'single_feature_{behavior_type}.xlsx', index=False)
     # print(f'cell count: {cell_count}')
     # return fig
@@ -311,14 +328,23 @@ if __name__ == '__main__':
     Last Modified: 2024-06-27
     Generating 12 plots for the list of cells that Ed picked out -- with time window
     '''
-    zombies = Zombies.__members__.items()
-    bestfrans = BestFrans.__members__.items()
-    time_windowed_cells = get_metadata_for_list_of_cells_with_time_window()
-    # spike_rates = compute_average_spike_rates_for_list_of_cells_with_time_windows(time_windowed_cells)
-    # print(spike_rates)
+
+    zombies = [member.value for name, member in Zombies.__members__.items()]
+    bestfrans = [member.value for name, member in BestFrans.__members__.items()]
+
+    time_windowed_cells = get_metadata_for_list_of_cells_with_time_window("BestFrans_Cells")
+    spike_rates = compute_average_spike_rates_for_list_of_cells_with_time_windows(time_windowed_cells)
+    bestfrans_columns = [col for col in bestfrans if col in spike_rates.columns]
+    bestfrans_columns.extend(["Date", "Round No.", "Time Window"])
+    bestfrans_spike_rates = spike_rates[bestfrans_columns]
+    bestfrans_spike_rates.to_excel('bestfrans_spike_rates_2nd_list_windowed.xlsx')
+
 
     spike_counts = get_spike_count_for_single_neuron_with_time_window(time_windowed_cells)
-    print(spike_counts)
+    bestfrans_columns = [col for col in bestfrans if col in spike_counts.columns]
+    bestfrans_columns.extend(["Date", "Round No.", "Time Window"])
+    bestfrans_spike_counts = spike_counts[bestfrans_columns]
+    bestfrans_spike_counts.to_excel('bestfrans_spike_counts_2nd_list_windowed.xlsx')
     """
     Looking at each neuron using average spikes rate over 10 trials
     1D analysis for different types of behaviors (affiliation, submission, aggression)
@@ -330,11 +356,11 @@ if __name__ == '__main__':
 
     monkey = "81G"
     agon_beh, Sm_arrow_agon, Sarrow_m_agon = social_data_processor.partition_behavior_variance_from_excel_file(
-        'feature_df_agonism.xlsx')
+        'zombies_feature_df_agonism.xlsx')
     sub_beh, Sm_arrow_sub, Sarrow_m_sub = social_data_processor.partition_behavior_variance_from_excel_file(
-        'feature_df_submission.xlsx')
+        'zombies_feature_df_submission.xlsx')
     aff_beh, Sm_arrow_aff, Sarrow_m_aff = social_data_processor.partition_behavior_variance_from_excel_file(
-        'feature_df_affiliation.xlsx')
+        'zombies_feature_df_affiliation.xlsx')
 
     X_agon, agon_feature_names = construct_feature_matrix_from_behavior_data(monkey, agon_beh, Sm_arrow_agon,
                                                                              Sarrow_m_agon, 'Agonism')
@@ -383,5 +409,5 @@ if __name__ == '__main__':
     #         ax.grid(False)
     #         plot_number += 1
     #
-    # plt.savefig(f'/home/connorlab/Documents/GitHub/Julie/linear_regression_results/single_feature_r_squared_histograms/{location}_Submission_marked')
+    # plt.savefig(f'/home/connorlab/Documents/GitHub/Julie/all_cells_linear_regression/single_feature_r_squared_histograms/{location}_Submission_marked')
     # plt.show()
