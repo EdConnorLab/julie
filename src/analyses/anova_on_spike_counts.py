@@ -4,12 +4,13 @@ import pandas as pd
 
 
 from initial_4feature_lin_reg import get_spike_count_for_single_neuron_with_time_window, \
-    get_metadata_for_list_of_cells_with_time_window
+    get_metadata_for_list_of_cells_with_time_window, get_metadata_for_preliminary_analysis
 import spike_count
 from monkey_names import Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from scipy.stats import f_oneway
 
+from spike_rate_computation import get_average_spike_rates_for_each_monkey, get_spike_rates_for_each_trial
 
 def perform_anova_on_dataframe_rows(df):
     """
@@ -40,7 +41,7 @@ def perform_anova_on_dataframe_rows_for_time_windowed(df):
         # Perform OneWay ANOVA
         f_val, p_val = f_oneway(*groups)
         results.append({'Date': row['Date'], 'Round No.': row['Round No.'],
-                        # 'Time Window': row['Time Window'],
+                        'Time Window': row['Time Window'],
                         'Cell': index, 'F Value': f_val, 'P Value': p_val})
         if p_val < 0.05:
 
@@ -48,13 +49,14 @@ def perform_anova_on_dataframe_rows_for_time_windowed(df):
             significant_results.append({
                 'Date': row['Date'],
                 'Round No.': row['Round No.'],
-                # 'Time Window': row['Time Window'],
+                'Time Window': row['Time Window'],
                 'Cell': index,
                 'P Value': p_val
             })
     results_df = pd.DataFrame(results)
     significant_results_df = pd.DataFrame(significant_results)
     return results_df, significant_results_df
+
 
 def anova_permutation_test(groups, num_permutations=1000):
     data = np.concatenate(groups)
@@ -94,6 +96,7 @@ if __name__ == '__main__':
     Last Updated: 2024-07-03 
     Latest Updates: running ANOVA for BestFrans
     '''
+
 
     # Get list of monkey names
     zombies = [member.value for name, member in Zombies.__members__.items()]

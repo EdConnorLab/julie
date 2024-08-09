@@ -61,6 +61,28 @@ def get_spike_count_for_each_trial(date, round_number):
     return spike_counts
 
 
+def generate_time_windows_for_given_window_size(window_size):
+    """
+    Generate a list of time windows (tuples) representing ranges with a specified window size.
+
+    Parameters:
+    window_size (int): Must be a positive integer and should not exceed 2000 ms.
+
+    Returns:
+    time_windows (list of tuples): Each tuple represents a range.
+
+    Raises:
+    ValueError:
+        If the window_size is not a positive integer or exceeds 2000.
+    """
+    if not isinstance(window_size, int) or window_size <= 0 or window_size > 2000:
+        raise ValueError("Window size must be a positive integer and not exceed 2000 ms.")
+
+    time_windows = [(i, i + window_size) for i in range(0, 2000, window_size)]
+
+    return time_windows
+
+
 def count_spikes_for_specific_cell_time_windowed(raw_data, cell, time_window):
     unique_monkeys = raw_data['MonkeyName'].dropna().unique().tolist()
     spike_count_per_channel = pd.DataFrame()

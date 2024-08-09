@@ -64,6 +64,20 @@ def get_metadata_for_ANOVA_passed_cells_time_windowed():
 
 
 def get_spike_count_for_single_neuron_with_time_window(cell_metadata):
+    """
+    Spike count for a channel with time window (handles both sorted and unsorted channels)
+
+    Parameters:
+        cell_metadata (pandas.DataFrame) contains the following columns:
+            - 'Date': need to convert to YYYY-MM-DD format
+            - 'Round No.': int (i.e. 2)
+            - 'Cell': string (i.e. Channel.C_013 or Channel.C_010_Unit 1)
+            - 'Time Window': in ms (i.e. (250, 750))
+
+    Returns:
+    all_spike_count (pandas.DataFrame)
+
+    """
     reader = RecordingMetadataReader()
     rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
     experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]

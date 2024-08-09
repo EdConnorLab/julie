@@ -27,6 +27,17 @@ compute_population_spike_rates_for_ER
 compute_population_spike_rates_for_AMG
 compute_overall_average_spike_rates_for_each_round
 
+
+Note on raw_trial_data
+raw_trial_data is a pandas dataframe with the following columns:
+    - 'TaskField' (i.e. 1695750846583000)
+    - 'FileName' (i.e. 4331.JPG)
+    - 'MonkeyId' (i.e. 10294)
+    - 'MonkeyName' (i.e. 167I)
+    - 'MonkeyGroup' (i.e. Stranger Things)
+    - 'SpikeTimes' (i.e. {Channel.C_002:[13.3532, 18.0429], Channel.C_003:[13.3532, 18.0429]}
+    - 'EpochStartStop' (i.e. (8.3331, 10.8741))
+
 """
 
 
@@ -197,6 +208,7 @@ def compute_average_spike_rate_for_single_neuron_for_specific_time_window(raw_tr
                         calculate_spike_rate(data, (start_time + window_start_sec, start_time + window_end_sec)))
                 else:
                     spike_rates.append(calculate_spike_rate(data, row['EpochStartStop']))
+
             else:
                 print(f"No data for {cell} in row {index}")
 
