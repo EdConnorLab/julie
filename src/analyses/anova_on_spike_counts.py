@@ -88,6 +88,23 @@ def perform_anova_permutation_test_on_rows(df, num_permutations=1000):
     return results, total_sig
 
 
+def two_sample_t_test(df):
+    '''
+    Compare if the means of two groups are different
+
+    Use this for comparing if there is a differential response
+    for one group (i.e. Zombies) vs rest of the groups (i.e. Best Frans, Instigators, etc.)
+    '''
+    cells = get_metadata_for_preliminary_analysis()
+    neural_population = cells[cells['Location'] == 'ER']
+    stat_param_list = []
+    for index, row in neural_population.iterrows():
+        date = row['Date'].strftime('%Y-%m-%d')
+        round_no = row['Round No.']
+        spike_rates = get_spike_rates_for_each_trial(date, round_no)
+        print(spike_rates)
+    # TODO: finish writing this function
+
 if __name__ == '__main__':
     '''
     Date Created : 2024-04-29
