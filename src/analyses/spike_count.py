@@ -13,7 +13,7 @@ def add_metadata_to_spike_counts(spike_count_df, date, round_number, time_window
     """
     spike_count_df['Date'] = date
     spike_count_df['Round No.'] = round_number
-    spike_count_df['Time Window'] = [time_window]
+    spike_count_df['Time Window'] = [time_window]  * len(spike_count_df)
     return spike_count_df
 
 
