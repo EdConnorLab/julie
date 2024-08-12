@@ -9,16 +9,16 @@ from data_readers.recording_metadata_reader import RecordingMetadataReader
 
 Structure of spike_rate_computation.py
 
-get_spike_rates_for_each_trial:
-    read_pickle 
-    compute_spike_rates_from_raw_trial_data
+get_raw_data_and_channels_from_files
+    read_pickle
     read_sorted_data
+    
+get_spike_rates_for_each_trial:
+    compute_spike_rates_from_raw_unsorted_data
     compute_spike_rates_from_sorted_data
 
 get_average_spike_rates_for_each_monkey:
-    read_pickle
-    compute_average_spike_rates_from_raw_trial_data
-    read_sorted_data
+    compute_average_spike_rates_from_raw_unsorted_data
     compute_average_spike_rates_from_sorted_data
     
 compute_average_spike_rate_for_single_neuron_for_specific_time_window
@@ -28,8 +28,8 @@ compute_population_spike_rates_for_AMG
 compute_overall_average_spike_rates_for_each_round
 
 
-Note on raw_trial_data
-raw_trial_data is a pandas dataframe with the following columns:
+Note on raw_unsorted_data
+raw_unsorted_data is a pandas dataframe with the following columns:
     - 'TaskField' (i.e. 1695750846583000)
     - 'FileName' (i.e. 4331.JPG)
     - 'MonkeyId' (i.e. 10294)
@@ -41,20 +41,28 @@ raw_trial_data is a pandas dataframe with the following columns:
 """
 
 
+def get_raw_data_and_channels_from_files(date, round_number):
+    reader = RecordingMetadataReader()
+    pickle_filepath, valid_channels, round_dir_path = reader.get_metadata_for_spike_analysis(date, round_number)
+    unsorted_raw_data = read_pickle(pickle_filepath)
+
+    sorted_file = round_dir_path / 'sorted_spikes.pkl'
+    if sorted_file.exists():
+        sorted_data = read_sorted_data(round_dir_path)
+    else:
+        sorted_data = None
+
+    return unsorted_raw_data, valid_channels, sorted_data
+
+
 def get_spike_rates_for_each_trial(date, round_number):
     """
     Computes spike rates (sp/s) for each trial for a given experimental round
     """
-    reader = RecordingMetadataReader()
-    pickle_filepath, valid_channels, round_dir_path = reader.get_metadata_for_spike_analysis(date, round_number)
+    unsorted_raw_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_number)
+    raw_data_spike_rates = compute_spike_rates_from_raw_unsorted_data(unsorted_raw_data, valid_channels)
 
-    raw_trial_data = read_pickle(pickle_filepath)
-    raw_data_spike_rates = compute_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels)
-
-    # Check if the experimental round is sorted
-    sorted_file = round_dir_path / 'sorted_spikes.pkl'
-    if sorted_file.exists():
-        sorted_data = read_sorted_data(round_dir_path)
+    if sorted_data is not None:
         sorted_data_spike_rates = compute_spike_rates_from_sorted_data(sorted_data)
 
         raw_data_spike_rates = drop_duplicate_channels(raw_data_spike_rates, sorted_data)
@@ -75,16 +83,12 @@ def get_average_spike_rates_for_each_monkey(date, round_number):
     Returns:
         average spike rates across 10 trials for each monkey
     """
-    reader = RecordingMetadataReader()
-    pickle_filepath, valid_channels, round_dir_path = reader.get_metadata_for_spike_analysis(date, round_number)
-    raw_trial_data = read_pickle(pickle_filepath)
-    average_spike_rates_from_raw_data = compute_average_spike_rates_from_raw_trial_data(raw_trial_data,
-                                                                                        valid_channels)
+    raw_unsorted_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_number)
+    average_spike_rates_from_raw_data = compute_average_spike_rates_from_raw_unsorted_data(raw_unsorted_data,
+                                                                                           valid_channels)
     # Check if the experimental round is sorted
-    sorted_file = round_dir_path / 'sorted_spikes.pkl'
-    if sorted_file.exists():
-        # read sorted data and compute avg spike rate
-        sorted_data = read_sorted_data(round_dir_path)
+    if sorted_data is not None:
+        # compute avg spike rate from sorted data
         average_spike_rates_from_sorted_data = compute_average_spike_rates_from_sorted_data(sorted_data)
 
         average_spike_rates_from_raw_data = drop_duplicate_channels(average_spike_rates_from_raw_data, sorted_data)
@@ -95,11 +99,11 @@ def get_average_spike_rates_for_each_monkey(date, round_number):
     return average_spike_rates
 
 
-def compute_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
-    unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
+def compute_spike_rates_from_raw_unsorted_data(raw_unsorted_data, valid_channels):
+    unique_monkeys = raw_unsorted_data['MonkeyName'].dropna().unique().tolist()
     spike_rate_per_channel = pd.DataFrame()
     for monkey in unique_monkeys:
-        monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
+        monkey_data = raw_unsorted_data[raw_unsorted_data['MonkeyName'] == monkey]
         monkey_spike_rates = {}
         for channel in valid_channels:
             spike_rates = []
@@ -114,11 +118,11 @@ def compute_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
     return spike_rate_per_channel
 
 
-def compute_average_spike_rates_from_raw_trial_data(raw_trial_data, valid_channels):
-    unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
+def compute_average_spike_rates_from_raw_unsorted_data(raw_unsorted_data, valid_channels):
+    unique_monkeys = raw_unsorted_data['MonkeyName'].dropna().unique().tolist()
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
     for monkey in unique_monkeys:
-        monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
+        monkey_data = raw_unsorted_data[raw_unsorted_data['MonkeyName'] == monkey]
         monkey_specific_spike_rate = {}
         for channel in valid_channels:
             spike_rates = []
@@ -190,12 +194,12 @@ def compute_average_spike_rates_from_sorted_data(sorted_data):
     return avg_spike_rate_by_unit
 
 
-def compute_average_spike_rate_for_single_neuron_for_specific_time_window(raw_trial_data, cell, time_window):
+def compute_average_spike_rate_for_single_neuron_for_specific_time_window(raw_unsorted_data, cell, time_window):
     # average spike rates for each monkey
-    unique_monkeys = raw_trial_data['MonkeyName'].dropna().unique().tolist()
+    unique_monkeys = raw_unsorted_data['MonkeyName'].dropna().unique().tolist()
     avg_spike_rate_by_unit = pd.DataFrame(index=[])
     for monkey in unique_monkeys:
-        monkey_data = raw_trial_data[raw_trial_data['MonkeyName'] == monkey]
+        monkey_data = raw_unsorted_data[raw_unsorted_data['MonkeyName'] == monkey]
         monkey_specific_spike_rate = {}
         spike_rates = []
         for index, row in monkey_data.iterrows():
