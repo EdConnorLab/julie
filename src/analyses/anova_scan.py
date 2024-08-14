@@ -32,11 +32,11 @@ def generate_time_windows_for_given_window_size(window_size):
 if __name__ == '__main__':
 
     # Set time window size to be scanned
-    time_windows = generate_time_windows_for_given_window_size(500)
+    time_windows = generate_time_windows_for_given_window_size(300)
 
     # Get cells to be scanned
     metadata = get_metadata_for_preliminary_analysis()
-    neural_population = metadata[metadata['Location'] == 'Amygdala']
+    neural_population = metadata[metadata['Location'] == 'ER']
 
     # Get stimuli to be scanned
     zombies = [member.value for name, member in Zombies.__members__.items()]
@@ -68,5 +68,5 @@ if __name__ == '__main__':
     all_anova_sig_results = pd.concat(anova_sig_results, ignore_index=True)
     results_df_final = drop_duplicate_channels_with_matching_time_window(all_anova_sig_results)
     print(results_df_final)
-    results_df_final.to_excel('/home/connorlab/Documents/GitHub/Julie/anova_scan/AMG_ANOVA_scan_size_500ms.csv')
+    results_df_final.to_excel('/home/connorlab/Documents/GitHub/Julie/anova_scan/ER_ANOVA_scan_size_300ms.xlsx')
 
