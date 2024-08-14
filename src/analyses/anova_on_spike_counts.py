@@ -2,7 +2,7 @@ import math
 import numpy as np
 import pandas as pd
 
-
+from channel_enum_resolvers import is_channel_in_dict, get_value_from_dict_with_channel
 from initial_4feature_lin_reg import get_spike_count_for_single_neuron_with_time_window, \
     get_metadata_for_list_of_cells_with_time_window, get_metadata_for_preliminary_analysis
 import spike_count
@@ -10,7 +10,9 @@ from monkey_names import Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from scipy.stats import f_oneway
 
+from single_channel_analysis import get_spike_count
 from spike_rate_computation import get_average_spike_rates_for_each_monkey, get_spike_rates_for_each_trial
+
 
 def perform_anova_on_dataframe_rows(df):
     """
@@ -27,6 +29,9 @@ def perform_anova_on_dataframe_rows(df):
         # if p_val < 0.05:
         #     significant_results.append((date, round_no, index, p_val))
     return results, significant_results
+
+
+
 
 
 def perform_anova_on_dataframe_rows_for_time_windowed(df):
