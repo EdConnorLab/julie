@@ -39,7 +39,7 @@ class RecordingMetadataReader(ExcelDataReader):
         matching_round = self.recording_metadata[
             (self.recording_metadata['Date'] == date) & (self.recording_metadata['Round No.'] == round_number)]
         filename = matching_round['Pickle File Name'].iloc[0]
-        return str(filename) + ".pk1"
+        return str(filename) + ".pkl"
 
     def get_intan_folder_names_for_specific_date(self, date):
         matching_date = self.recording_metadata[(self.recording_metadata['Date'] == date)]

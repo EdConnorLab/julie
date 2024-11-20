@@ -2,7 +2,7 @@ import pickle
 import pandas as pd
 
 if __name__ == "__main__":
-    experiment_data_filename = "230926_round1.pk1"
+    experiment_data_filename = "230926_round1.pkl"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)

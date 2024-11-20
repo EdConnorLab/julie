@@ -17,7 +17,7 @@ def main():
 
     cortana_path = "/home/connorlab/Documents/IntanData/Cortana"
     round_path = os.path.join(cortana_path, date, round)
-    compiled_trials_filepath = os.path.join(round_path, "compiled.pk1")
+    compiled_trials_filepath = os.path.join(round_path, "compiled.pkl")
     experiment_name = os.path.basename(os.path.dirname(compiled_trials_filepath))
     raw_trial_data = pd.read_pickle(compiled_trials_filepath).reset_index(drop=True)
 
@@ -33,7 +33,7 @@ def main():
     # plt.show()
 
 
-def read_sorted_data(round_path, sorted_spikes_filename='sorted_spikes.pkl', compiled_trials_filename='compiled.pk1'):
+def read_sorted_data(round_path, sorted_spikes_filename='sorted_spikes.pkl', compiled_trials_filename='compiled.pkl'):
     compiled_trials_filepath = os.path.join(round_path, compiled_trials_filename)
     raw_trial_data = pd.read_pickle(compiled_trials_filepath).reset_index(drop=True)
     rhd_file_path = os.path.join(round_path, 'info.rhd')

@@ -65,7 +65,7 @@ def compile_data(*, experiment_name: str, day: date):
 
     # Clean rows with empty EpochStartStop
     data = data[data['EpochStartStop'].notna()]
-    save_path = os.path.join(intan_file_path, "compiled.pk1")
+    save_path = os.path.join(intan_file_path, "compiled.pkl")
     data.to_pickle(save_path)
 
     print(data.to_string())

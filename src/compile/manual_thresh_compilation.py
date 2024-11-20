@@ -40,17 +40,17 @@ def compile_data(day: date = None,
     if experiment_filename is not None:
         data = collect_raw_data_single_file_for_experiment(day=day, start_time=time(0, 0, 0), end_time=time(23, 59, 59),
                                                            experiment_name=experiment_filename)
-        filename = f"{experiment_filename}.pk1"
+        filename = f"{experiment_filename}.pkl"
     else:
         data = collect_raw_data_new_file_per_trial(day=day, start_time=start_time, end_time=end_time)
-        filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
+        filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pkl"
 
     # Clean rows with empty SpikeTimes
     data = data[data['SpikeTimes'].notna()]
 
     # Save Data
     save_dir = "/"
-    # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
+    # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pkl"
     save_path = os.path.join(save_dir, filename)
     data.to_pickle(save_path)
 
