@@ -5,6 +5,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clat.intan.rhd import load_intan_rhd_format
+
+from monkey_names import get_monkeys_by_rank
 from sorted_units_compilation import read_pickle
 
 matplotlib.use("Qt5Agg")
@@ -149,6 +151,61 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
         # fig.savefig(individual_save_path_svg)
         print(f"saving individual plots to {individual_save_path_png}")
         fig.savefig(individual_save_path_png)
+
+    return fig
+
+def plot_raster_for_monkeys_by_rank(raw_data, unit, experiment_name=None):
+    unit_data = extract_target_unit_data(unit, raw_data)
+    unique_monkey_groups = unit_data['MonkeyGroup'].dropna().unique().tolist()
+    N = len(unit_data)
+
+    max_rows = 0
+    for group_name in unique_monkey_groups:
+        group_data = unit_data[unit_data['MonkeyGroup'] == group_name]
+        unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
+        max_rows = max(max_rows, len(unique_monkeys))
+
+    fig = plt.figure(figsize=(15 * len(unique_monkey_groups), 45 * max_rows))
+
+    for col_idx, group_name in enumerate(unique_monkey_groups):
+        group_data = unit_data[unit_data['MonkeyGroup'] == group_name]
+        unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
+        unique_monkeys_in_order = get_monkeys_by_rank(group_name)
+        monkeys_list = [item for item in unique_monkeys_in_order if item in unique_monkeys]
+
+        for row_idx, monkey_name in enumerate(monkeys_list):
+            monkey_data = group_data[group_data['MonkeyName'] == monkey_name]
+
+            ax = fig.add_subplot(max_rows, len(unique_monkey_groups),
+                                 row_idx * len(unique_monkey_groups) + col_idx + 1)
+
+            filtered_spike_times_list = []
+            for idx, row in monkey_data.iterrows():
+                spike_times = row[f'SpikeTimes_{unit}']
+                epoch_start, epoch_stop = row['EpochStartStop']
+
+                # Filter spikes based on EpochStartStop and subtract the epoch start time
+                filtered_spike_times = [spike - epoch_start for spike in spike_times if
+                                        epoch_start <= spike <= epoch_stop]
+                filtered_spike_times_list.append(filtered_spike_times)
+
+            ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.5)
+            ax.set_xlim(0, 2.0)
+            ax.set_yticks([len(filtered_spike_times_list)])
+            # Place the title text to the right of the subplot
+            ax.text(1.05, 0.5, f"{monkey_name}", transform=ax.transAxes, ha='left', va='center', fontsize=14)
+
+        fig.text(0.5 / len(unique_monkey_groups) + col_idx / len(unique_monkey_groups), 0.95, f'{group_name}',
+                 ha='center', va='center')
+
+    # fig.text(0.5, 0.01, 'Monkey Groups', ha='center', va='center')
+    fig.text(0.5, 0.05, 'Time (s)', ha='center', va='center', rotation='horizontal')
+    fig.text(0.99, 0.95, f'N: {N}', ha='right', va='bottom')
+    fig.suptitle(f'Raster Plots for Individual Monkeys: Channel: {unit}')
+
+    plt.subplots_adjust(hspace=1.0, wspace=1.0)
+
+    plt.show()
 
     return fig
 
