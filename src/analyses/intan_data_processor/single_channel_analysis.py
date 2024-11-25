@@ -7,6 +7,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from clat.intan.channels import Channel
 
+from monkey_names import get_monkeys_by_rank
+
 matplotlib.use("Qt5Agg")
 
 
@@ -17,11 +19,10 @@ def main():
     script_dir = Path(__file__).parent
 
     # Construct the path from the script directory
-    file_path = (script_dir / '..' / '..' / 'compiled' / experiment_data_filename).resolve()
+    file_path = (script_dir / '..' / '..' / 'julie'/ 'compiled' / experiment_data_filename).resolve()
     print(file_path)
     raw_data = read_pickle(file_path)
     #   plot_channel_histograms(raw_data, channel=Channel.C_013)
-
 
     channels = [
         Channel.C_006
@@ -30,14 +31,66 @@ def main():
     experiment_name = experiment_data_filename.split(".")[0]
     for channel in channels:
         print("Working on channel %s" % channel)
-        plot_raster_for_monkeys(raw_data, channel=channel,
-                                experiment_name=experiment_name)
+        plot_raster_for_monkeys_by_rank(raw_data, channel=channel,
+                                        experiment_name=experiment_name)
 
 
 def read_pickle(file_path):
     unpacked_pickle = pd.read_pickle(file_path)
     return unpacked_pickle
 
+
+def plot_raster_for_monkeys_by_rank(raw_data, channel, experiment_name=None):
+    channel_data = extract_target_channel_data(channel, raw_data)
+    unique_monkey_groups = channel_data['MonkeyGroup'].dropna().unique().tolist()
+    N = len(channel_data)
+
+    max_rows = 0
+    for group_name in unique_monkey_groups:
+        group_data = channel_data[channel_data['MonkeyGroup'] == group_name]
+        unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
+        max_rows = max(max_rows, len(unique_monkeys))
+
+    fig = plt.figure(figsize=(15 * len(unique_monkey_groups), 45 * max_rows))
+
+    for col_idx, group_name in enumerate(unique_monkey_groups):
+        group_data = channel_data[channel_data['MonkeyGroup'] == group_name]
+        unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
+        unique_monkeys_in_order = get_monkeys_by_rank(group_name)
+        monkeys_list = [item for item in unique_monkeys_in_order if item in unique_monkeys]
+        for row_idx, monkey_name in enumerate(monkeys_list):
+            monkey_data = group_data[group_data['MonkeyName'] == monkey_name]
+            subplot_idx = row_idx * len(unique_monkey_groups) + col_idx + 1
+            ax = fig.add_subplot(max_rows, len(unique_monkey_groups), subplot_idx)
+
+            filtered_spike_times_list = []
+            for idx, row in monkey_data.iterrows():
+                spike_times = row[f'SpikeTimes_{channel.value}']
+                epoch_start, epoch_stop = row['EpochStartStop']
+
+                # Filter spikes based on EpochStartStop and subtract the epoch start time
+                filtered_spike_times = [spike - epoch_start for spike in spike_times if
+                                        epoch_start <= spike <= epoch_stop]
+                filtered_spike_times_list.append(filtered_spike_times)
+
+            ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.5)
+            ax.set_xlim(0, 2.0)
+            ax.set_yticks([len(filtered_spike_times_list)])
+            # Place the title text to the right of the subplot
+            ax.text(1.05, 0.5, f"{monkey_name}", transform=ax.transAxes, ha='left', va='center', fontsize=14)
+
+        fig.text(0.6 / len(unique_monkey_groups) + col_idx / len(unique_monkey_groups), 0.92, f'{group_name}',
+                 ha='center', va='center')
+
+    # fig.text(0.5, 0.01, 'Monkey Groups', ha='center', va='center')
+    fig.text(0.5, 0.05, 'Time (s)', ha='center', va='center', rotation='horizontal')
+    fig.text(0.99, 0.95, f'N: {N}', ha='right', va='bottom')
+    fig.suptitle(f'Raster Plots for Individual Monkeys (by Rank): Channel: {channel.value}')
+
+    plt.subplots_adjust(hspace=1.0, wspace=1.0)
+    plt.show()
+
+    return fig
 
 def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
     channel_data = extract_target_channel_data(channel, raw_data)
@@ -60,7 +113,6 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
             monkey_data = group_data[group_data['MonkeyName'] == monkey_name]
 
             ax = fig.add_subplot(max_rows, len(unique_monkey_groups), row_idx * len(unique_monkey_groups) + col_idx + 1)
-
             filtered_spike_times_list = []
             for idx, row in monkey_data.iterrows():
                 spike_times = row[f'SpikeTimes_{channel.value}']
