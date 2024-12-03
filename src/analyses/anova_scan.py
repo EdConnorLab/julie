@@ -41,6 +41,7 @@ if __name__ == '__main__':
     # Get stimuli to be scanned
     zombies = [member.value for name, member in Zombies.__members__.items()]
     del zombies[6]
+    del zombies[-1]
 
     # Perform ANOVA scan
     anova_sig_results = []
