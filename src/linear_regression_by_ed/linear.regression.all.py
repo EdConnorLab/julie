@@ -3,24 +3,16 @@
 # no bootstrapping from individual responses
 
 import pandas as pd
-import random
-import pprint
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.svm import SVR
-from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import r2_score
 from sklearn.metrics import explained_variance_score
-import string
 import re
 import math
 
 # trial_responses = pd.read_excel('/Users/charlesconnor/Dropbox/grants/social.memory/selected_cells_time_windowed/spike_count_for_each_trial_windowed.xlsx')
 trial_responses = pd.read_excel('/home/connorlab/Documents/GitHub/Julie/files_for_lin_reg_analysis_by_ed/spike_count_for_each_trial_windowed.xlsx')
 response_string_array = trial_responses.values
-
-nmonkeys = 10 #must match behavior matrix size; subject and source monkeys removed as appropriate in code below
-nmonkeysnotsubject = 9
 
 affiliation_to_matrix =np.array([
     [0, 19, 9, 38, 84, 27, 13, 14, 4, 9], [15, 0, 9, 41, 4, 13, 19, 71, 12, 0],
@@ -49,81 +41,36 @@ agonism_to_matrix = np.array([
 
 agonism_from_matrix = agonism_to_matrix.T
 
-cells = [0, 2, 7, 10, 13, 15,
-         17, 19, 21, 22, 24, 25,
-         30, 32, 34, 44, 46, 48,
-         50, 53, 55, 57, 59, 67]
-
+# Cells
+cells = [0, 2, 7, 10, 13, 15, 17, 19, 21, 22, 24, 25, 30, 32, 34, 44, 46, 48, 50, 53, 55, 57, 59, 67]
 cell_names = ['9/26 1 2 1', '9/26 3 2 1', '10/3 3 13 1', '10/3 4 10 2', '10/4 1 4 1', '10/4 1 19 3',
               '10/4 2 18 1', '10/4 2 20 2', '10/4 3 2 1', '10/4 3 4 2', '10/4 3 9 1', '10/4 3 9 3',
               '10/4 4 22 2', '10/4 4 27 1', '10/5 1 4', '10/11 1 2', '10/11 3 2', '10/11 3 13',
               '10/24 2 2', '10/27 4 11', '10/27 4 20', '10/31 1 5', '10/31 1 20', '11/8 1 7']
+ncells = len(cells)
 
-ncells = 24
+# Monkeys
 monkey_name = ['7124', '69X', '72X', '94B', '110E', '67G', '81G', '143H', '87J', '151J']
+nmonkeys = len(monkey_name)
+nmonkeysnotsubject = 9
+subjectmonkey = 6    # 81G
 
-nboots = 1 # > 1 for bootstrap random sampling of one response from each cell; commented out below
-subjectmonkey = 6    #81G
-
-max_abs_correlation = np.zeros(len(cells))   #only reporting results based on max absolute correlation for each cell
-
-svr_rbf = SVR(kernel="rbf", C=100, gamma=0.1, epsilon=0.1)
-svr_lin = SVR(kernel="linear", C=100, gamma="auto")
-svr_sig = SVR(kernel="sigmoid", C=100, gamma="auto")
-svr_poly = SVR(kernel="poly", C=100, gamma="auto", degree=3, epsilon=0.1, coef0=1)
-
-lw = 2
-
-svrs = [svr_lin]
-kernel_label = ["RBF", "Linear", "Polynomial"]
-model_color = ["m", "c", "g"]
-
-svr = svr_lin
-#svr = svr_sig
-
-nbehaviors = 6
-#Rsquared = [[[0.0 for x in range(ncells)] for x in range(nmonkeys)] for x in range (nbehaviors)]
-#print('Rsquared = ', Rsquared)
+# Behaviors
+behavior_names = ['AFFILIATION TO', 'AFFILIATION FROM', 'SUBMISSION TO', 'SUBMISSION FROM', 'AGONISM TO', 'AGONISM FROM']
+nbehaviors = len(behavior_names)
 
 Rsquared = np.zeros((nbehaviors, nmonkeys, ncells))
 behavior_list = np.zeros((nmonkeys, ncells))
 monkey_list = np.zeros(ncells)
-
-# Rsquared = []    #3-dimensional list of Rsquared values above 0.25; Rsquared[behavior][sourcemonkey][cell]
-# for i in range (0, nbehaviors):
-#     behavior_list = []    #outer or 1st dimension of list array is behaviors
-#     for j in range (0, nmonkeys):
-#         monkey_list = []    #2nd dimension is source monkeys
-#         for k in range (0, ncells):
-#             monkey_list.append(0.0)    #3rd dimension is cells
-#         behavior_list.append(monkey_list)
-#     Rsquared.append(behavior_list)
-
-#print(Rsquared)
+sumRsquared = np.zeros(10)
     
-#siglist[icell][ibehavior][sourcemonkey] = rsquared
-    
-siglist = []
-
 beh_add = np.zeros(nmonkeys)
 cell_add = np.zeros((nbehaviors, nmonkeys))
 siglist = np.zeros((ncells, nbehaviors, nmonkeys))
 
-# for icell in range (0, ncells):
-#     cell_add = []
-#     for ibehavior in range (0, nbehaviors):
-#         beh_add = []
-#         for source_monkey in range (0, nmonkeys):
-#             beh_add.append(0.0)
-#         cell_add.append(beh_add)
-#     siglist.append(cell_add)
-
-behavior_names = ['AFFILIATION TO', 'AFFILIATION FROM', 'SUBMISSION TO', 'SUBMISSION FROM', 'AGONISM TO', 'AGONISM FROM']
     
 print('AFFILIATION TO ANALYSIS')
 ibehavior = 0
-
-sumRsquared = np.zeros(10)
 
 for icell in range (0, ncells):
     for source_monkey in range (0, nmonkeys):
@@ -141,15 +88,11 @@ for icell in range (0, ncells):
                 response_list = [int(s) for s in re.findall(r'\b\d+\b', response_string)] # change string to a list
                 mean_response = sum(response_list) / len(response_list)
                 x.append(mean_response)
-                
+
         #print('y = ', y)
         #print('x = ', x)
             
         n = len(x) # number of data points
-
-        # mean of x and y vector
-        # m_x = sum(x) / len(x)
-        # m_y = sum(y) / len(y)
 
         # calculating cross-deviation and deviation about x
         SS_xy = 0.0
@@ -172,7 +115,6 @@ for icell in range (0, ncells):
         m_x /= float(n)
         #print('SS_xx = ', SS_xx)
                     
-                    
         # calculating regression coefficients
         b_1 = SS_xy / SS_xx
         b_0 = m_y - b_1*m_x
@@ -184,9 +126,11 @@ for icell in range (0, ncells):
 
         r2_score(y, ypred)
         Rsquared[ibehavior][source_monkey][icell] = explained_variance_score(y, ypred)
-        if ((icell == 15) and (source_monkey == 4)):
-            print('rsquare icell 15 sourcemonkey 4: ', Rsquared[ibehavior][source_monkey][icell])
-            print('affiliation from frequencies for 94B: ', y)
+        # if ((icell == 15) and (source_monkey == 4)):
+        #     print('rsquare icell 15 sourcemonkey 4: ', Rsquared[ibehavior][source_monkey][icell])
+        #     print('affiliation from frequencies for 94B: ', y)
+        if (source_monkey == 6):
+            print(f'rsquare icell {icell} sourcemonkey 6: ', Rsquared[ibehavior][source_monkey][icell])
         if (Rsquared[ibehavior][source_monkey][icell] > 0.25):
             sumRsquared[source_monkey] += abs(Rsquared[ibehavior][source_monkey][icell])
             print('for cell', icell, 'for source monkey', monkey_name[source_monkey], 'Rsquared = ', Rsquared[ibehavior][source_monkey][icell])
@@ -681,49 +625,32 @@ for source_monkey in range (0, nmonkeys):
                 print('icell = ', icell, cell_names[icell], behavior_names[ibehavior], monkey_name[source_monkey], siglist[icell][ibehavior][source_monkey])
 
 print('COMBINED TUNING WITHIN CELLS')
+print('"tuning r" in the figure')
 print('max products of Rsquared values summed across cells')
 
-comblist = []     # sum of combination maxRsquared values in same cells summed across cells [sourcemonkey][sinkmonkey]
+comblist = np.zeros((10,10))    # sum of combination maxRsquared values in same cells summed across cells [sourcemonkey][sinkmonkey]
+cellcomblist = np.zeros((10,10))   # sum of combination maxRsquared values in current cell [sourcemonkey][sinkmonkey]
+maxmonkey = np.zeros(10)  # max Rsquared for each monkey for current cell
 
-for source_monkey in range (0, nmonkeys):
-    sourceadd = []
-    for sink_monkey in range (0, nmonkeys):
-        sourceadd.append(0.0)
-    comblist.append(sourceadd)
-    
-cellcomblist = []     # sum of combination maxRsquared values in current cell [sourcemonkey][sinkmonkey]
+for icell in range(ncells):
+    maxmonkey.fill(0)
+    cellcomblist.fill(0)
 
-for source_monkey in range (0, nmonkeys):
-    sourceadd = []
-    for pairmonkey in range (0, nmonkeys):
-        sourceadd.append(0.0)
-    cellcomblist.append(sourceadd) 
+    for source_monkey in range(nmonkeys):
+        maxmonkey[source_monkey] = np.max(siglist[icell, :, source_monkey])
 
-maxmonkey = []      # max Rsquared for each monkey for current cell
-
-for i in range (0, nmonkeys):
-    maxmonkey.append(0.0)
-
-for icell in range (0, ncells):
-    for source_monkey in range (0, nmonkeys):
-        for pairmonkey in range (0, nmonkeys):
-            cellcomblist[source_monkey][pairmonkey] = 0.0
-    for source_monkey in range (0, nmonkeys):
-        maxmonkey[source_monkey] = 0.0
-        for ibehavior in range (0, nbehaviors):
-            if (siglist[icell][ibehavior][source_monkey] > maxmonkey[source_monkey]):
-                maxmonkey[source_monkey] = siglist[icell][ibehavior][source_monkey]
-    for source_monkey in range (0, nmonkeys):
-        for pairmonkey in range (0, nmonkeys):
+    for source_monkey in range(nmonkeys):
+        for pairmonkey in range(nmonkeys):
             cellcomblist[source_monkey][pairmonkey] = maxmonkey[source_monkey] * maxmonkey[pairmonkey]
             comblist[source_monkey][pairmonkey] += cellcomblist[source_monkey][pairmonkey]
             
-for source_monkey in range (0, nmonkeys):
-    for pairmonkey in range (0, nmonkeys):
+for source_monkey in range(nmonkeys):
+    for pairmonkey in range(nmonkeys):
         print('sourcemonkey ', monkey_name[source_monkey], 'pairmonkey ', monkey_name[pairmonkey], 'sum max Rsquared products', comblist[source_monkey][pairmonkey])
-        
+
+'''
 print('CLUSTERING BY ANATOMY')
-            
+
 #0 '9/26 1 2 1', 10.0 ML, 15.8 AP, 8.4 DV
 #1 '9/26 3 2 1', 9.9 ML, 15.8 AP, 7.7 DV
 #2 '10/3 3 13 1', 11.1 ML, 15.8 AP, 8.0 DV
@@ -885,3 +812,5 @@ plt.plot(x, ypred, color = "g")
 plt.xlabel('x')
 plt.ylabel('y')
 #plt.show()
+
+'''

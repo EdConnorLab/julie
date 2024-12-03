@@ -10,7 +10,7 @@ from single_unit_analysis import read_sorted_data
 from spike_count import count_spikes_for_specific_cell_time_windowed
 from spike_rate_computation import compute_average_spike_rate_for_single_neuron_for_specific_time_window, \
     get_average_spike_rates_for_each_monkey
-from monkey_names import Monkey, Zombies, BestFrans
+from monkey_names import Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from single_channel_analysis import read_pickle
 
