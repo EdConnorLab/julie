@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from anova_on_spike_counts import perform_anova_on_dataframe_rows_for_time_windowed
 from channel_enum_resolvers import drop_duplicate_channels_with_matching_time_window
@@ -8,25 +9,52 @@ from spike_count import add_metadata_to_spike_counts, \
     get_spike_counts_for_given_time_window
 from spike_rate_computation import get_raw_data_and_channels_from_files
 
+def generate_sliding_time_windows(window_size, step_size, total_duration=2000):
+    """
+    Generate a list of time windows (tuples) using numpy for efficient computation.
+    The windows are sliding across a specified total duration with overlap.
+
+    Parameters:
+    window_size (int): The size of each time window in milliseconds.
+    step_size (int): The step size in milliseconds by which the window slides.
+    total_duration (int): Total duration in milliseconds over which to generate windows (default 2000 ms).
+
+    Returns:
+    numpy.ndarray: Array of tuples, each representing a time window with a start and end time.
+    """
+    # Validate inputs
+    if window_size <= 0 or step_size <= 0 or window_size > total_duration:
+        raise ValueError("Invalid window size, step size, or total duration.")
+
+    # Create start points using np.arange
+    start_points = np.arange(0, total_duration - window_size + 1, step_size)
+
+    # Create an array of windows using start points
+    windows = np.array(list(zip(start_points, start_points + window_size)))
+
+    return windows
+
 
 def generate_time_windows_for_given_window_size(window_size):
     """
-    Generate a list of time windows (tuples) representing ranges with a specified window size.
+    Generate a list of time windows (tuples) representing ranges with a specified window size using numpy.
 
     Parameters:
     window_size (int): Must be a positive integer and should not exceed 2000 ms.
 
     Returns:
-    time_windows (list of tuples): Each tuple represents a range.
+    numpy.ndarray: Array of tuples, each tuple represents a range.
 
     Raises:
     ValueError:
-        If the window_size is not a positive integer or exceeds 2000.
+        If the window_size is not a positive integer or exceeds 2000 ms.
     """
     if not isinstance(window_size, int) or window_size <= 0 or window_size > 2000:
         raise ValueError("Window size must be a positive integer and not exceed 2000 ms.")
 
-    return [(i, i + window_size) for i in range(0, 2000, window_size)]
+    starts = np.arange(0, 2000, window_size)
+    ends = starts + window_size
+    return np.array(list(zip(starts, ends)))
 
 
 if __name__ == '__main__':
