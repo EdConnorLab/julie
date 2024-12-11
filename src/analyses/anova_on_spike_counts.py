@@ -8,29 +8,26 @@ from initial_4feature_lin_reg import get_spike_count_for_single_neuron_with_time
 import spike_count
 from monkey_names import Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
-from scipy.stats import f_oneway
+from scipy.stats import f_oneway, kruskal
 
 from single_channel_analysis import get_spike_count
 from spike_rate_computation import get_average_spike_rates_for_each_monkey, get_spike_rates_for_each_trial
 
-
-def perform_anova_on_dataframe_rows(df):
-    """
-    Perform one-way ANOVA on rows of a DataFrame
-    """
+def perform_statistical_test_on_dataframe_rows(df, test_name='anova'):
     results = []
     significant_results = []
     for index, row in df.iterrows():
         # Extract groups as lists
         groups = [group for group in row if isinstance(group, list)]
-        # Perform OneWay ANOVA
-        f_val, p_val = f_oneway(*groups)
-        results.append((f_val, p_val))
+        if test_name == 'anova':
+            stat, p_val = f_oneway(*groups)
+            results.append((stat, p_val))
+        if test_name == 'kruskal':
+            stat, p_val = kruskal(*groups)
+            results.append((stat, p_val))
         # if p_val < 0.05:
         #     significant_results.append((date, round_no, index, p_val))
     return results, significant_results
-
-
 
 
 
