@@ -18,7 +18,7 @@ def main():
     compile_data(day=date(2023, 11, 7),
                  start_time=time(9, 10, 0),
                  end_time=time(18, 7, 0),
-                 experiment_filename="231107_round1")
+                 experiment_filename="../../Cortana/raster_plots/231107_round1")
 
     # compile_data(day=date(2023, 9, 13),
     #              start_time=time(17, 0, 0),
