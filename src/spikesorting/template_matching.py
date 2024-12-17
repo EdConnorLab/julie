@@ -5,13 +5,73 @@ from scipy.signal import correlate, find_peaks
 import numpy as np
 from clat.intan.channels import Channel
 
-data_handler = InputDataManager("/home/connorlab/Documents/IntanData/Cortana/2023-11-11/1699728895878795_231111_135457")
+def min_in_chunks(data, chunk_size_samples):
+    """
+    Calculate the maximum value in each chunk of the data.
+
+    Parameters:
+        data (np.array): The array containing voltage data.
+        chunk_size_samples (int): The number of samples in each chunk.
+
+    Returns:
+        np.array: An array of maximum values for each chunk.
+    """
+    # Calculate the number of chunks
+    num_chunks = int(len(data) // chunk_size_samples)
+    # Reshape the data to create an array where each row is a chunk
+    reshaped_data = data[:num_chunks * chunk_size_samples].reshape(num_chunks, chunk_size_samples)
+    # Calculate the maximum for each chunk
+    min_values = reshaped_data.min(axis=1)
+    return min_values
+
+def max_in_chunks(data, chunk_size_samples):
+    """
+    Calculate the maximum value in each chunk of the data.
+
+    Parameters:
+        data (np.array): The array containing voltage data.
+        chunk_size_samples (int): The number of samples in each chunk.
+
+    Returns:
+        np.array: An array of maximum values for each chunk.
+    """
+    # Calculate the number of chunks
+    num_chunks = int(len(data) // chunk_size_samples)
+    # Reshape the data to create an array where each row is a chunk
+    reshaped_data = data[:num_chunks * chunk_size_samples].reshape(num_chunks, chunk_size_samples)
+    # Calculate the maximum for each chunk
+    max_values = reshaped_data.max(axis=1)
+    return max_values
+
+data_handler = InputDataManager("/home/connorlab/Documents/IntanData/Cortana/2023-10-24/231024_round2")
 data_handler.read_data()
-channel = Channel.C_012
+channel = Channel.C_002
 voltages = data_handler.voltages_by_channel.get(channel)
-threshold_voltage = -100
-crossing_indices = threshold_spikes_absolute(threshold_voltage, voltages)
+
+# Setting threshold to detect spikes
+# threshold_voltage = -100
+# crossing_indices = threshold_spikes_absolute(threshold_voltage, voltages)
 # print(threshold_spikes_absolute(-100, voltages))
+
+# sampling rate = 20,000 Hz
+sampling_rate = 20000
+time_chunk = 0.005 # 5ms
+chunk_size_samples = int(sampling_rate * time_chunk)
+min_values = min_in_chunks(voltages, chunk_size_samples)
+print(min_values)
+print(len(min_values))
+print(f"minimum:{np.min(min_values)}")
+print(f"mean: {np.mean(min_values)}")
+print(f"median: {np.median(min_values)}")
+print(f"Q3: {np.percentile(min_values, 75)}")
+print(f"Q1: {np.percentile(min_values, 25)}")
+
+plt.hist(min_values, bins=400, alpha=0.7, color='blue', edgecolor='black')
+plt.xlim(-100,0)
+plt.show()
+
+'''
+crossing_indices = 0
 if len(crossing_indices) == 0:
     pass
 else:
@@ -54,3 +114,4 @@ else:
     plt.show()
 
 # for channel, voltages in data_handler.voltages_by_channel.items():
+'''
