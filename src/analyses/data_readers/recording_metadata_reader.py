@@ -62,7 +62,7 @@ class RecordingMetadataReader(ExcelDataReader):
 
     def get_metadata_for_spike_analysis(self, date, round_number, monkey='Cortana'):
         pickle_filename = self.get_pickle_filename_for_specific_round(date, round_number)
-        compiled_dir = (Path(__file__).resolve().parent.parent.parent.parent / 'compiled')
+        compiled_dir = (Path(__file__).resolve().parent.parent.parent.parent / monkey / 'compiled')
         pickle_filepath = os.path.join(compiled_dir, pickle_filename)
         valid_channels = set(self.get_valid_channels(date, round_number))
 
