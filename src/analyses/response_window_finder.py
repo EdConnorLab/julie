@@ -36,18 +36,41 @@ def plot_fractional_change_data(date, round_no, data, time_chunk_size):
     plt.axhline(y=1.8, color='black') # threshold
     plt.show()
 
-
+def find_pairs(crossings):
+    pairs = []
+    start_index = None
+    for i in range(len(crossings)):
+        if crossings[i] == 1:
+            start_index = i
+        elif crossings[i] == -1 and start_index is not None:
+            pairs.append((start_index, i))
+            start_index = None
+        elif crossings[i] == -1 and start_index is None:
+            pairs.append((0, i))
+            start_index = None
+    if start_index is not None:
+        pairs.append((start_index, len(crossings)-1))
+    return pairs
+#
+def convert_to_time_windows(index_pairs, time_increments):
+    response_windows = []
+    for start, end in index_pairs:
+        if start == 0 and start == end:
+            response_windows.append((0, time_increments[start]))
+        elif start == end:
+            response_windows.append((time_increments[start], time_increments[-1]))
+        else:
+            response_windows.append((time_increments[start], time_increments[end]))
+    return response_windows
 
 if __name__ == '__main__':
-
-    time_windows = generate_time_windows_for_given_window_size(50)
 
     zombies = [member.value for name, member in Zombies.__members__.items()]
     del zombies[6]
     del zombies[-1]
 
-    date = "2023-10-27"
-    round_no = 2
+    date = "2023-11-27"
+    round_no = 3
     raw_unsorted_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_no)
 
     time_chunk_size = 0.2  # in sec
@@ -62,34 +85,40 @@ if __name__ == '__main__':
 
     max_length = unsorted_df['fractional_change'].apply(len).max()
     time_in_sec = np.arange(time_chunk_size, time_chunk_size * (max_length+1), time_chunk_size)
+    threshold = 1.8
+
+
     for index, row in unsorted_df.iterrows():
-        threshold = 1.8
         row_array = np.array(row['fractional_change'])
         above_threshold = row_array > threshold
         crossings = np.diff(above_threshold.astype(int))
-        crossing_up_indices = np.where(crossings == 1)[0]
-        crossing_down_indices = np.where(crossings == -1)[0] + 1
-        plt.plot(time_in_sec, row_array)
+        pairs = find_pairs(crossings)
+        print(pairs)
+        time_windows = convert_to_time_windows(pairs, time_in_sec)
+        print(time_windows)
 
-        # Ensure the index does not exceed the array bounds
-        if crossing_down_indices[-1] >= len(row_array):
-            crossing_down_indices = crossing_down_indices[:-1]
-
-        if crossing_up_indices.size > 0 and crossing_down_indices.size > 0:
-            if crossing_up_indices[0] > crossing_down_indices[0]:
-                crossing_down_indices = crossing_down_indices[1:]
-            start_index = crossing_up_indices[0]
-            end_index = crossing_down_indices[0] if crossing_down_indices.size > 0 else -1
-
-            start_point = (time_in_sec[start_index], row_array[start_index])
-            end_point = (time_in_sec[end_index], row_array[end_index])
-            plt.axhline(y=threshold, color='r', linestyle='--', label='Threshold')
-            plt.plot(time_in_sec[start_index], row_array[start_index], 'go', label='Start of Window')  # Green dot
-            plt.plot(time_in_sec[end_index], row_array[end_index], 'mo', label='End of Window')  # Magenta dot
-            plt.yticks(np.arange(min(plt.ylim()), max(plt.ylim()), 0.5))
-            plt.grid(axis='y', linestyle='--', linewidth=0.5)
-            plt.title(f'{index}')
+        plt.plot(time_in_sec[:len(row_array)], row_array)
+        plt.axhline(y=threshold, color='r', linestyle='--', label='Threshold')
+        # TODO: try plotting!
+        for time_window in time_windows:
+            plt.plot(time_window[0], row_array[time_window[0]],'go')
+            plt.plot(time_window[1], row_array[time_window[1]], 'bo')
         plt.show()
+    #     for up_idx in crossing_up_indices:
+    #         # Find the first down index that is greater than the current up index
+    #         down_idx = crossing_down_indices[crossing_down_indices > up_idx]
+    #         if down_idx.size > 0:
+    #             start_time = time_in_sec[up_idx]
+    #             end_time = time_in_sec[down_idx[0]]
+    #             plt.plot(start_time, row_array[up_idx], 'go', label='Start of Window')  # Green dot
+    #             plt.plot(end_time, row_array[down_idx[0]], 'mo', label='End of Window')  # Magenta dot
+    #             plt.title(f'{index} - Window: Start at {start_time}s, End at {end_time}s')
+    #             print(f'Window starts at {start_time}s and ends at {end_time}s')
+    #
+    #     plt.yticks(np.arange(min(plt.ylim()), max(plt.ylim()), 0.5))
+    #     plt.grid(axis='y', linestyle='--', linewidth=0.5)
+    #     plt.legend()
+
 
     # results_df_final = drop_duplicate_channels_with_matching_time_window(all_anova_sig_results)
 
