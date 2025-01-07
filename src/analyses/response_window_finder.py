@@ -102,6 +102,7 @@ if __name__ == '__main__':
         plt.plot(time_in_sec[:len(row_array)], row_array)
         plt.axhline(y=threshold, color='r', linestyle='--', label='Threshold')
         # TODO: try plotting!
+        #
         for time_window in time_windows:
             start, end = time_window
             print(start)
