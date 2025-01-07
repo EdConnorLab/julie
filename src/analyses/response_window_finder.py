@@ -56,13 +56,12 @@ def convert_to_time_windows(index_pairs, time_increments):
     response_windows = []
     for start, end in index_pairs:
         if start == 0 and start == end:
-            response_windows.append((0, time_increments[start]))
+            response_windows.append((0, round(time_increments[start], 1)))
         elif start == end:
-            response_windows.append((time_increments[start], time_increments[-1]))
+            response_windows.append((round(time_increments[start], 1), round(time_increments[-1], 1)))
         else:
-            response_windows.append((time_increments[start], time_increments[end]))
+            response_windows.append((round(time_increments[start], 1), round(time_increments[end], 1)))
     return response_windows
-
 if __name__ == '__main__':
 
     zombies = [member.value for name, member in Zombies.__members__.items()]
@@ -85,6 +84,9 @@ if __name__ == '__main__':
 
     max_length = unsorted_df['fractional_change'].apply(len).max()
     time_in_sec = np.arange(time_chunk_size, time_chunk_size * (max_length+1), time_chunk_size)
+    time_starting_with_zero = np.arange(0, time_chunk_size * (max_length+2), time_chunk_size)
+    print('time in sec')
+    print(time_in_sec)
     threshold = 1.8
 
 
@@ -101,8 +103,14 @@ if __name__ == '__main__':
         plt.axhline(y=threshold, color='r', linestyle='--', label='Threshold')
         # TODO: try plotting!
         for time_window in time_windows:
-            plt.plot(time_window[0], row_array[time_window[0]],'go')
-            plt.plot(time_window[1], row_array[time_window[1]], 'bo')
+            start, end = time_window
+            print(start)
+            print(end)
+            start_index = np.where(np.isclose(time_starting_with_zero, start, atol=1e-5))[0][0]
+            end_index = np.where(np.isclose(time_starting_with_zero, end, atol=1e-5))[0][0]
+            print(f"indices: {start_index}-{end_index}")
+            plt.plot(start, row_array[start_index],'go')
+            plt.plot(end, row_array[end_index], 'bo')
         plt.show()
     #     for up_idx in crossing_up_indices:
     #         # Find the first down index that is greater than the current up index
