@@ -83,9 +83,7 @@ if __name__ == '__main__':
         # plot_fractional_change_data(date, round_no, sorted_df, time_chunk_size)
 
     max_length = unsorted_df['fractional_change'].apply(len).max()
-    time_in_sec = np.arange(time_chunk_size, time_chunk_size * (max_length+1), time_chunk_size)
-    time_starting_with_zero = np.arange(0, time_chunk_size * (max_length+2), time_chunk_size)
-    print('time in sec')
+    time_in_sec = np.arange(0, time_chunk_size * (max_length+2), time_chunk_size)
     print(time_in_sec)
     threshold = 1.8
 
@@ -96,19 +94,16 @@ if __name__ == '__main__':
         crossings = np.diff(above_threshold.astype(int))
         pairs = find_pairs(crossings)
         print(pairs)
-        time_windows = convert_to_time_windows(pairs, time_in_sec)
+        time_windows = convert_to_time_windows(pairs, time_in_sec[1:len(row_array)])
         print(time_windows)
 
-        plt.plot(time_in_sec[:len(row_array)], row_array)
+        plt.plot(time_in_sec[1:len(row_array)], row_array)
         plt.axhline(y=threshold, color='r', linestyle='--', label='Threshold')
-        # TODO: try plotting!
-        #
+
         for time_window in time_windows:
             start, end = time_window
-            print(start)
-            print(end)
-            start_index = np.where(np.isclose(time_starting_with_zero, start, atol=1e-5))[0][0]
-            end_index = np.where(np.isclose(time_starting_with_zero, end, atol=1e-5))[0][0]
+            start_index = np.where(np.isclose(time_in_sec, start, atol=1e-5))[0][0]
+            end_index = np.where(np.isclose(time_in_sec, end, atol=1e-5))[0][0]
             print(f"indices: {start_index}-{end_index}")
             plt.plot(start, row_array[start_index],'go')
             plt.plot(end, row_array[end_index], 'bo')
