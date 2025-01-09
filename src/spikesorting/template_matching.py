@@ -66,9 +66,39 @@ print(f"median: {np.median(min_values)}")
 print(f"Q3: {np.percentile(min_values, 75)}")
 print(f"Q1: {np.percentile(min_values, 25)}")
 
-plt.hist(min_values, bins=400, alpha=0.7, color='blue', edgecolor='black')
-plt.xlim(-100,0)
+# plt.hist(min_values, bins=400, alpha=0.7, color='blue')
+# plt.xlim(-100,0)
+# plt.show()
+
+
+# set -20 as threshold
+threshold = -50
+milliseconds_before = 1
+milliseconds_after = 1
+data_points_before = int(milliseconds_before / 1000 * sampling_rate) # sampling rate is 20000 Hz
+data_points_after = int(milliseconds_after / 1000 * sampling_rate)
+
+supra_threshold_indices = np.where(voltages < threshold)[0]
+first_index = supra_threshold_indices[0]
+plt.figure(figsize=(10, 6))
+for index in supra_threshold_indices[:100]:
+    start_index = int(max(index - data_points_before, 0))
+    end_index = int(min(index + data_points_after, len(voltages)))
+    sliced_data = voltages[start_index:end_index]
+
+    # Create an x-axis centered at 0
+    # x_axis = np.arange(-data_points_before, data_points_after, 1)
+    x_axis = (np.arange(-data_points_before, data_points_after, 1) / sampling_rate) * 1000
+    plt.plot(x_axis, sliced_data, label=f'Index {index}')
+
+# Label the axes
+plt.xlabel('Time (ms)')
+plt.ylabel('Voltage')
+plt.title('Voltage Threshold Crossings Aligned at 0')
+plt.axvline(x=0, color='red', linestyle='--')  # Add a vertical line at the crossing point
 plt.show()
+
+
 
 '''
 crossing_indices = 0
