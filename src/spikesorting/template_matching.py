@@ -43,9 +43,9 @@ def max_in_chunks(data, chunk_size_samples):
     max_values = reshaped_data.max(axis=1)
     return max_values
 
-data_handler = InputDataManager("/home/connorlab/Documents/IntanData/Cortana/2023-10-24/231024_round2")
+data_handler = InputDataManager("/home/connorlab/Documents/IntanData/Cortana/2023-10-04/231004_round2")
 data_handler.read_data()
-channel = Channel.C_002
+channel = Channel.C_020
 voltages = data_handler.voltages_by_channel.get(channel)
 
 # Setting threshold to detect spikes
@@ -71,33 +71,91 @@ print(f"Q1: {np.percentile(min_values, 25)}")
 # plt.show()
 
 
-# set -20 as threshold
-threshold = -50
-milliseconds_before = 1
-milliseconds_after = 1
+# set -40 as threshold
+threshold = -40
+milliseconds_before = 0.8
+milliseconds_after = 1.4
 data_points_before = int(milliseconds_before / 1000 * sampling_rate) # sampling rate is 20000 Hz
 data_points_after = int(milliseconds_after / 1000 * sampling_rate)
 
 supra_threshold_indices = np.where(voltages < threshold)[0]
-first_index = supra_threshold_indices[0]
-plt.figure(figsize=(10, 6))
-for index in supra_threshold_indices[:100]:
+# first_index = supra_threshold_indices[0]
+# start_index = int(max(first_index - data_points_before, 0))
+# end_index = int(min(first_index + data_points_after, len(voltages)))
+# first_spike = voltages[start_index:end_index]
+# x_axis = (np.arange(-data_points_before, data_points_after, 1) / sampling_rate) * 1000
+# plt.plot(x_axis, first_spike)
+# plt.show()
+
+# Initialize a list to collect non-overlapping segments
+collected_segments = []
+last_end_index = -1  # Tracks the end of the last added segment
+
+# Loop through each threshold crossing index
+for index in supra_threshold_indices:
     start_index = int(max(index - data_points_before, 0))
     end_index = int(min(index + data_points_after, len(voltages)))
-    sliced_data = voltages[start_index:end_index]
 
-    # Create an x-axis centered at 0
-    # x_axis = np.arange(-data_points_before, data_points_after, 1)
+    # Only add this segment if it does not overlap with the last segment added
+    if start_index > last_end_index:
+        # Extract the relevant slice of the voltage data
+        sliced_data = voltages[start_index:end_index]
+
+        # Only add segments that have the full desired length
+        if len(sliced_data) == (data_points_before + data_points_after):
+            collected_segments.append(sliced_data)
+            last_end_index = end_index  # Update the end index of the last added segment
+
+# Average the collected segments if we have enough
+if len(collected_segments) >= 50:
+    average_signal = np.mean(collected_segments[:50], axis=0)
     x_axis = (np.arange(-data_points_before, data_points_after, 1) / sampling_rate) * 1000
-    plt.plot(x_axis, sliced_data, label=f'Index {index}')
+
+    # Plot the average signal
+    plt.plot(x_axis, average_signal)
+    plt.xlabel('Time (milliseconds)')
+    plt.ylabel('Average Voltage (mV)')
+    plt.title('Average Voltage Profile of First 50 Non-Overlapping Segments')
+    plt.axvline(x=0, color='red', linestyle='--')  # Add a vertical line at the threshold crossing
+    plt.show()
+else:
+    print("Not enough non-overlapping segments were collected to average.")
+
+
+
+
+
+plt.figure(figsize=(10, 6))
+# Initialize the list to keep track of segments plotted to avoid overlap
+plotted_segments = []
+
+# Loop through each threshold crossing index
+for index in supra_threshold_indices[:100]:
+    if not any((seg[0] <= index <= seg[1]) for seg in plotted_segments):
+        # Calculate the start and end indices for slicing
+        start_index = int(max(index - data_points_before, 0))
+        end_index = int(min(index + data_points_after, len(voltages)))
+
+        # Check if this segment overlaps with previously plotted segments
+        if not any((start_index <= seg[1] and end_index >= seg[0]) for seg in plotted_segments):
+            # Extract the relevant slice of the voltage data
+            sliced_data = voltages[start_index:end_index]
+
+            # Create an x-axis centered at 0, convert index to milliseconds
+            x_axis = (np.arange(-data_points_before, data_points_after, 1) / sampling_rate) * 1000
+
+            # Plot this slice
+            plt.plot(x_axis, sliced_data, alpha=0.8)  # Set a low alpha to see overlapping patterns
+
+            # Add the current segment to the list of plotted segments
+            plotted_segments.append((start_index, end_index))
 
 # Label the axes
 plt.xlabel('Time (ms)')
 plt.ylabel('Voltage')
-plt.title('Voltage Threshold Crossings Aligned at 0')
-plt.axvline(x=0, color='red', linestyle='--')  # Add a vertical line at the crossing point
+plt.title('Non-overlapping Voltage Threshold Crossings Aligned at 0 ms')
+plt.axvline(x=0, color='red', linestyle='--', alpha = 0.3)  # Add a vertical line at the crossing point
 plt.show()
-
 
 
 '''
@@ -144,4 +202,43 @@ else:
     plt.show()
 
 # for channel, voltages in data_handler.voltages_by_channel.items():
+'''
+
+
+
+''' 
+Example code for using PCA for spike waveform feature extraction
+
+from sklearn.decomposition import PCA
+
+
+def pca_spike_features(spikes, n_components=3):
+    """
+    Perform PCA on an array of spike waveforms to reduce dimensionality and extract features.
+
+    Parameters:
+        spikes (np.array): 2D array where each row is a spike waveform.
+        n_components (int): Number of principal components to retain.
+
+    Returns:
+        np.array: Transformed spike data into principal components.
+    """
+    pca = PCA(n_components=n_components)
+    transformed_spikes = pca.fit_transform(spikes)
+    return transformed_spikes, pca.components_
+
+
+# Example usage
+transformed_spikes, principal_components = pca_spike_features(segments, n_components=3)
+
+# Plotting the principal components
+plt.figure(figsize=(8, 6))
+for i, component in enumerate(principal_components):
+    plt.plot(component, label=f'PC{i + 1}')
+plt.legend()
+plt.title('Principal Components of Spike Waveforms')
+plt.xlabel('Time Points')
+plt.ylabel('PCA Weights')
+plt.show()
+
 '''
