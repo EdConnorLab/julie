@@ -18,14 +18,18 @@ def sum_lists(row):
     # Using zip to pair up corresponding elements and sum them
     return [sum(elements) for elements in zip(*row)]
 
+def rate_of_change(lst):
+    return [lst[i+1] - lst[i] if lst[i] != 0 else 0 for i in range(len(lst)-1)]
+
 def fractional_change(lst):
     return [(lst[i+1] - lst[i]) / lst[i] if lst[i] != 0 else 0 for i in range(len(lst)-1)]
 
-def calculate_fractional_change(data, monkeys, channels, chunk_size):
+def compute_fractional_and_rate_of_change(data, monkeys, channels, chunk_size):
     spike_counts = get_spike_counts_for_time_chunks(monkeys, data, channels, chunk_size)
     spike_counts['total_sum'] = spike_counts.apply(lambda row: sum_lists(row), axis=1)
     spike_counts['fractional_change'] = spike_counts['total_sum'].apply(fractional_change)
-    return  spike_counts[['total_sum', 'fractional_change']]
+    spike_counts['rate_of_change'] = spike_counts['total_sum'].apply(rate_of_change)
+    return  spike_counts[['total_sum', 'fractional_change','rate_of_change']]
 
 
 def plot_fractional_change_data(date, round_no, data, time_chunk_size):
@@ -55,25 +59,42 @@ def find_pairs(crossings):
     if start_index is not None:
         pairs.append((start_index, len(crossings)-1))
     return pairs
+'''
+        if fractional_changes[i] < down_threshold and not i == 0:
+            up_boundary = 0
+            down_boundary = i
+            pairs.append((up_boundary, down_boundary))
+'''
+
 
 def find_boundary_pairs(fractional_changes, up_threshold, down_threshold):
     pairs = []
     i = 0
+    found_initial_down = False
+    last_index = len(fractional_changes) - 1
     while i < len(fractional_changes):
-        if fractional_changes[i] > up_threshold:  # Check for an up boundary
+        window_closed = False
+        if fractional_changes[i] < down_threshold and not found_initial_down:
+            pairs.append((0, i))
+            found_initial_down = True
+        elif fractional_changes[i] > up_threshold:
             up_boundary = i
-            # Look for the next down boundary after the up boundary
             for j in range(up_boundary + 1, len(fractional_changes)):
                 if fractional_changes[j] < down_threshold:
                     down_boundary = j
                     pairs.append((up_boundary, down_boundary))
-                    i = down_boundary  # Start next search after the found down boundary
+                    window_closed = True
+                    i = down_boundary + 1 # add 1 to avoid having this down boundary detected as the initial down
                     break
-            else:
-                # If no down boundary is found, break the loop to avoid infinite looping
-                break
-        i += 1
+                if j == last_index and not window_closed: # when down boundary not found, set last index as the down boundary
+                    pairs.append((up_boundary, last_index))
+                    i = len(fractional_changes) # end the loop since we are at the last index
+                    break
+
+        else:
+            i += 1
     return pairs
+
 
 def round_tuple_values(t):
     return tuple(round(x, 2) for x in t)
@@ -94,21 +115,21 @@ if __name__ == '__main__':
     del zombies[6]
     del zombies[-1]
 
-    date = "2023-10-31"
-    round_no = 2
+    date = "2023-09-26"
+    round_no = 1
     raw_unsorted_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_no)
 
     time_chunk_size = 0.05  # in sec
     up_threshold = 0.5
     down_threshold = -0.5
 
-    unsorted_df = calculate_fractional_change(raw_unsorted_data, zombies, valid_channels, time_chunk_size)
+    unsorted_df = compute_fractional_and_rate_of_change(raw_unsorted_data, zombies, valid_channels, time_chunk_size)
     # plot_fractional_change_data(date, round_no, unsorted_df, time_chunk_size)
 
     if sorted_data is not None:
         unique_channels = set()
         unique_channels.update(sorted_data['SpikeTimes'][0].keys())
-        sorted_df = calculate_fractional_change(sorted_data, zombies, unique_channels, time_chunk_size)
+        sorted_df = compute_fractional_and_rate_of_change(sorted_data, zombies, unique_channels, time_chunk_size)
         # plot_fractional_change_data(date, round_no, sorted_df, time_chunk_size)
 
     max_length = unsorted_df['fractional_change'].apply(len).max()
@@ -117,25 +138,34 @@ if __name__ == '__main__':
     for index, row in unsorted_df.iterrows():
         # print(index)
         fractional_change_row = np.array(row['fractional_change'])
+        print(row['total_sum'])
+        print(fractional_change_row)
+        rate_of_change_row = np.array(row['rate_of_change'])
         spike_total_row = np.array(row['total_sum'])
         boundary_pairs_found = find_boundary_pairs(fractional_change_row, up_threshold, down_threshold)
-        # print(boundary_pairs_found)
+        print(boundary_pairs_found)
         time_window_tuple_list = []
         for pair in boundary_pairs_found:
-            time_window_index = tuple(x + 1 for x in pair)
+            time_window_index = tuple(x + 1 if x != 0 else 0 for x in pair)
             time_window_tuple = tuple(time_in_sec[i] for i in time_window_index)
             time_window_tuple = round_tuple_values(time_window_tuple)
             time_window_tuple = tuple(x*1000 for x in time_window_tuple) # convert to microseconds
             time_window_tuple_list.append(time_window_tuple)
-        # print(time_window_tuple_list)
+        print(f"{date} Round No. {round_no} {index} has windows: {time_window_tuple_list}")
         if time_window_tuple_list:  # Only update if there is something to update
             unsorted_df.at[index, 'response_windows'] = time_window_tuple_list
-
-        # print(unsorted_df)
-        # plt.plot(time_in_sec[1:len(fractional_change_row) + 1], fractional_change_row)
-        # plt.plot(time_in_sec[:len(spike_total_row)], spike_total_row)
-        #
-        # plt.show()
+        fig, ax = plt.subplots()
+        fig.subplots_adjust(top=0.88, bottom=0.11, left=0.045, right=0.975)
+        #ax.plot(time_in_sec[1:len(rate_of_change_row) + 1], rate_of_change_row, color='orange', label='Rate of Change', marker='o')
+        ax.plot(time_in_sec[1:len(fractional_change_row)+1], fractional_change_row, color='blue', label='Fractional Change', marker='o')
+        ax.plot(time_in_sec[:len(spike_total_row)], spike_total_row, color='red', label = 'Total Spike Count', marker='o')
+        ax.set_xticks(np.arange(min(time_in_sec[:len(spike_total_row)]), max(time_in_sec[:len(spike_total_row)]) + 0.01, 0.05))
+        ax.grid(axis='x', linestyle='--', linewidth=0.5)
+        ax.axhline(y=0.5, color='black', linestyle='--')
+        ax.axhline(y=-0.5, color='black', linestyle='--')
+        ax.legend()
+        ax.set_title(f"{date} Round {round_no} {index} ")
+        plt.show()
 
 
     # Perform ANOVA on response windows
@@ -154,6 +184,8 @@ if __name__ == '__main__':
                 })
     expanded_df = pd.DataFrame(expanded)
     print(expanded_df)
+    print('shape of expanded df')
+    print(expanded_df.shape)
     # calculate spike count
     spike_count = get_spike_count_for_single_neuron_with_time_window(expanded_df)
     # print(spike_count)
