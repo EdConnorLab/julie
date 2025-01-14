@@ -4,11 +4,11 @@ from datetime import datetime, time, date
 import pytz
 from clat.compile.task.compile_task_id import PngSlideIdCollector
 from clat.compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, MonkeyGroupField
-from clat.compile.task.julie_intan_file_per_experiment_fields import SpikeTimesForChannelsField_Experiment, \
-    EpochStartStopField_Experiment
+from julie_intan_file_per_experiment_fields import SpikeTimesForChannelsField_Experiment, \
+    EpochStartStopField_Experiment, PeriStimulusSpikeTimesForChannelsField_Experiment
 from julie_intan_file_per_trial_fields import SpikeTimesForChannelsField, EpochStartStopField
 from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks, TaskField
-from clat.intan.one_file_spike_parsing import OneFileParser
+from julie_one_file_spike_parsing import OneFileParser
 from clat.util import time_util
 from clat.util.connection import Connection
 
@@ -16,9 +16,9 @@ from clat.util.connection import Connection
 def main():
     # Main Parameters
     compile_data(day=date(2023, 11, 7),
-                 start_time=time(9, 10, 0),
-                 end_time=time(18, 7, 0),
-                 experiment_filename="../../Cortana/raster_plots/231107_round1")
+                 # start_time=time(9, 10, 0),
+                 # end_time=time(18, 7, 0),
+                 experiment_filename="231107_round1")
 
     # compile_data(day=date(2023, 9, 13),
     #              start_time=time(17, 0, 0),
@@ -49,11 +49,11 @@ def compile_data(day: date = None,
     data = data[data['SpikeTimes'].notna()]
 
     # Save Data
-    save_dir = "/"
-    # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pkl"
-    save_path = os.path.join(save_dir, filename)
-    data.to_pickle(save_path)
-
+    # save_dir = "/"
+    # # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pkl"
+    # save_path = os.path.join(save_dir, filename)
+    # data.to_pickle(save_path)
+    print(data.to_string())
     return data
 
 
@@ -77,7 +77,8 @@ def collect_raw_data_single_file_for_experiment(*, day: date, start_time: time, 
 
     # Parse Spikes
     parser = OneFileParser()
-    spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_file_path)
+    # spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_file_path)
+    unfiltered_spike_tstamps_for_channels_by_task_id, spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse_with_peristimulus_spikes(intan_file_path)
 
     # Task Fields
     fields = TaskFieldList()
@@ -87,6 +88,7 @@ def collect_raw_data_single_file_for_experiment(*, day: date, start_time: time, 
     fields.append(MonkeyNameField(conn_xper=conn_xper, conn_photo=conn_photo))
     fields.append(MonkeyGroupField(conn_xper=conn_xper, conn_photo=conn_photo))
     fields.append(SpikeTimesForChannelsField_Experiment(spike_tstamps_for_channels_by_task_id))
+    fields.append(PeriStimulusSpikeTimesForChannelsField_Experiment(unfiltered_spike_tstamps_for_channels_by_task_id))
     fields.append(EpochStartStopField_Experiment(epoch_start_stop_by_task_id))
     # Get data
     data = get_data_from_tasks(fields, task_ids)

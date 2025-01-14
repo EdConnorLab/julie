@@ -21,3 +21,14 @@ class EpochStartStopField_Experiment(TaskField):
         if task_id not in self.epoch_start_stop_by_task_id:
             return None
         return self.epoch_start_stop_by_task_id[task_id]
+
+
+class PeriStimulusSpikeTimesForChannelsField_Experiment(TaskField):
+    def __init__(self, peristimulus_spike_times_for_channels_by_task_id):
+        super().__init__("PeristimulusSpikeTimes")
+        self.peristimulus_spike_times_for_channels_by_task_id = peristimulus_spike_times_for_channels_by_task_id
+
+    def get(self, task_id: int):
+        if task_id not in self.peristimulus_spike_times_for_channels_by_task_id:
+            return None
+        return self.peristimulus_spike_times_for_channels_by_task_id[task_id]
