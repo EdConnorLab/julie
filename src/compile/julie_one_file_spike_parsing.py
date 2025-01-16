@@ -76,12 +76,14 @@ class OneFileParser:
         return unfiltered_spikes_for_channels_by_task_id, filtered_spikes_for_channels_by_task_id, epoch_start_stop_times_by_task_id, sample_rate
 
 
-    def parse_excluding_spikes(self, intan_file_path: str):
+    def parse_without_filtering_spikes(self, intan_file_path: str):
+        spike_path = os.path.join(intan_file_path, "spike.dat")
         digital_in_path = os.path.join(intan_file_path, "digitalin.dat")
         notes_path = os.path.join(intan_file_path, "notes.txt")
         rhd_file_path = os.path.join(intan_file_path, "info.rhd")
         sample_rate = load_intan_rhd_format.read_data(rhd_file_path)["frequency_parameters"]['amplifier_sample_rate']
 
+        spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(spike_path)
         stim_epochs_from_markers = epoch_using_marker_channels(digital_in_path, false_negative_correction_duration=2)
         epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(notes_path,
                                                                           stim_epochs_from_markers)
@@ -92,4 +94,4 @@ class OneFileParser:
             epoch_end = epoch[1] / sample_rate
             epoch_start_stop_times_by_task_id[task_id] = (epoch_start, epoch_end)
 
-        return epoch_start_stop_times_by_task_id, sample_rate
+        return  spike_tstamps_for_channels, epoch_start_stop_times_by_task_id, sample_rate
