@@ -5,10 +5,92 @@ and a paper "Burst detection methods" by E. Cotterill and SJ Eglen (2019)
 """
 
 import numpy as np
+import pandas as pd
 from scipy.stats import poisson
 import matplotlib.pyplot as plt
 from itertools import combinations
 from scipy.special import factorial
+from clat.intan.channels import Channel
+
+from channel_enum_resolvers import is_channel_in_dict, get_value_from_dict_with_channel
+from monkey_names import Zombies
+from response_window_finder import compute_fractional_and_rate_of_change
+from spike_count import get_spike_counts_for_time_chunks
+from spike_rate_computation import get_raw_data_and_channels_from_files, get_spike_rates_for_each_trial
+
+
+
+# Rank Surprise Burst Detection
+def exhaustive_surprise_maximization(spike_train, limit, threshold):
+    """
+    Exhaustive Surprise Maximization algorithm for burst detection.
+    Parameters:
+        spike_train: array of spike times.
+        limit: largest ISI allowed in a burst (percentile threshold).
+        threshold: minimum RS to consider a burst valid.
+    Returns:
+        detected_bursts: list of tuples, each containing (start_index, end_index, RS).
+    """
+
+    def compute_rank_surprise(isi, q, u, isi_count):
+        """
+        Compute the Rank Surprise (RS) statistic.
+        Parameters:
+            isi: list of inter-spike intervals (ISIs).
+            q: number of ISIs in the burst.
+            u: sum of ranks of the burst ISIs.
+            isi_count: total number of ISIs in the spike train.
+        Returns:
+            RS: Rank Surprise statistic value.
+        """
+        # Compute probability P(Tq <= u)
+        probability = 0
+        for k in range((u - q) // isi_count + 1):
+            num = (-1) ** k * factorial(u - k * isi_count)
+            den = (
+                    factorial(k)
+                    * factorial(q - k)
+                    * factorial(u - k * isi_count - q)
+            )
+            probability += num / den
+        probability /= isi_count ** q
+
+        # Rank Surprise statistic
+        RS = -np.log(probability)
+        return RS
+
+    isi = np.diff(spike_train)
+    isi_count = len(isi)
+    ranks = np.argsort(np.argsort(isi)) + 1  # Compute ranks (1-based index)
+    marked_indices = np.where(isi <= limit)[0]  # Mark ISIs below the limit
+
+    detected_bursts = []
+    while len(marked_indices) > 0:
+        best_RS = 0
+        best_burst = None
+
+        # Test all contiguous sequences of marked indices
+        for start_idx, end_idx in combinations(marked_indices, 2):
+            if end_idx - start_idx + 1 > 1:  # Minimum of two spikes in a burst
+                burst_isis = ranks[start_idx:end_idx + 1]
+                u = sum(burst_isis)
+                q = len(burst_isis)
+                RS = compute_rank_surprise(isi, q, u, isi_count)
+                if RS > best_RS:
+                    best_RS = RS
+                    best_burst = (start_idx, end_idx, RS)
+
+        # If a burst is found with RS above the threshold, store it and remove ISIs
+        if best_burst and best_RS > threshold:
+            detected_bursts.append(best_burst)
+            start_idx, end_idx, _ = best_burst
+            marked_indices = marked_indices[
+                ~((marked_indices >= start_idx) & (marked_indices <= end_idx))
+            ]
+        else:
+            break
+
+    return detected_bursts
 
 # Simple Burst Detection
 def detect_bursts(spike_times, isi_threshold):
@@ -103,10 +185,10 @@ def poisson_surprise(spike_times, mean_firing_rate, s_threshold=10):
         while j < n_spikes and ((spike_times[j] - spike_times[i]) / (j - i + 1)) < (2 / mean_firing_rate):
             j += 1
 
-        # # Skip if no valid burst was formed (i.e., j didn't increment)
-        # if j <= i + 2:  # Only two spikes considered, not a valid burst
-        #     i += 1  # Move to the next spike as the starting point
-        #     continue
+        # Skip if no valid burst was formed (i.e., j didn't increment)
+        if j <= i + 2:  # Only two spikes considered, not a valid burst
+            i += 1  # Move to the next spike as the starting point
+            continue
 
         # Evaluate surprise S for the initial sequence
         while j <= n_spikes:
@@ -150,109 +232,103 @@ def poisson_surprise(spike_times, mean_firing_rate, s_threshold=10):
 
     return bursts
 
+
+def extract_specific_spike_times_from_raw_unsorted_data(raw_unsorted_data, monkeys, channels):
+    all_spike_times = pd.DataFrame(index=[])
+    for monkey in monkeys:
+        monkey_data = raw_unsorted_data[raw_unsorted_data['MonkeyName'] == monkey]
+        monkey_specific_spike_times = {}
+        for channel in channels:
+            spike_times = []
+            for index, row in monkey_data.iterrows():
+                if is_channel_in_dict(channel, row['SpikeTimes']):
+                    data = get_value_from_dict_with_channel(channel, row['SpikeTimes'])
+                    spike_times.append(data)
+                else:
+                    print(f"No data for {channel} in row {index}")
+            monkey_specific_spike_times[channel] = all_spike_times
+        #
+        # # Add monkey-specific spike rates to the DataFrame
+        all_spike_times[monkey] = pd.Series(monkey_specific_spike_times)
+
+    return all_spike_times
+
+zombies = [member.value for name, member in Zombies.__members__.items()]
+del zombies[6]
+del zombies[-1]
+
+date = "2023-09-26"
+round_no = 1
+raw_unsorted_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_no)
+# spike_times = extract_specific_spike_times_from_raw_unsorted_data(raw_unsorted_data, zombies, [Channel.C_027, Channel.C_014])
+yanny = raw_unsorted_data[raw_unsorted_data['MonkeyName'] == "7124"]
+epoch = yanny['EpochStartStop']
+start, stop = epoch.iloc[0]
+channel = Channel.C_027
+yanny_spike_times = []
+min_length = float('inf')
+for index, row in yanny.iterrows():
+    if is_channel_in_dict(channel, row['SpikeTimes']):
+        data = get_value_from_dict_with_channel(channel, row['SpikeTimes'])
+        yanny_spike_times.append(data)
+        if len(data) < min_length:
+            min_length = len(data)  # Update minimum length
+# print(yanny_spike_times)
+truncated_spike_times = [spike[:min_length] for spike in yanny_spike_times]
+
+# Convert list of lists into a 2D NumPy array
+yanny_spike_times_array = np.array(truncated_spike_times)
+# print(yanny_spike_times.shape)
+
+# for index, row in spike_counts.iterrows():
+#     if str(index) == "Channel.C_027":
+#         s_threshold = 3
+        # data = row['total_sum']
+        # target_mean = np.mean(data) # baseline mean
+        # mean_firing_rate = target_mean/time_chunk_size
+        # bursts = poisson_surprise(spike_times, mean_firing_rate, s_threshold)
+
 # Example Usage
-spike_times = [0.101, 0.102, 0.103, 0.104, 0.105, 0.106, 0.107, 0.109,  0.11, 0.112, 0.113,
-               0.115, 0.3, 0.4, 0.5, 0.6, 0.62, 0.63, 0.7, 0.72, 0.75, 1.0, 1.001, 1.002, 1.003, 1.004,
-               1.005, 1.006, 1.007, 1.008, 1.009, 1.25, 1.27, 1.30, 1.3, 1.31, 1.35, 1.359, 1.4, 1.421, 1.524, 1.569, 2.0, 2.25, 2.5]
+spike_times = yanny_spike_times_array[0,:]
 spike_count = len(spike_times)
 mean_firing_rate = len(spike_times) / (spike_times[-1] - spike_times[0])  # Spikes per second
-s_threshold = 3
+s_threshold = 5
 spike_times_array = np.array(spike_times)
 
 # Create a figure and axes
-fig, ax = plt.subplots()
+# fig, ax = plt.subplots()
 
-# Plot vertical lines at spike times
-ax.vlines(spike_times_array, 0, 1, color='k')
-# Show the plot
-plt.show()
+# # Plot vertical lines at spike times
+# ax.vlines(spike_times_array, 0, 1, color='k')
+# # Show the plot
+# plt.show()
 
 
 bursts = poisson_surprise(spike_times, mean_firing_rate, s_threshold)
-print("Detected bursts:")
+print("Poisson Surprise ---- Detected bursts:")
 for burst in bursts:
     print(f"Start: {burst[0]:.3f}, End: {burst[1]:.3f}, S-value: {burst[2]:.2f}")
 
 
 
-# Rank Surprise Burst Detection
-def exhaustive_surprise_maximization(spike_train, limit, threshold):
-    """
-    Exhaustive Surprise Maximization algorithm for burst detection.
-    Parameters:
-        spike_train: array of spike times.
-        limit: largest ISI allowed in a burst (percentile threshold).
-        threshold: minimum RS to consider a burst valid.
-    Returns:
-        detected_bursts: list of tuples, each containing (start_index, end_index, RS).
-    """
-
-    def compute_rank_surprise(isi, q, u, isi_count):
-        """
-        Compute the Rank Surprise (RS) statistic.
-        Parameters:
-            isi: list of inter-spike intervals (ISIs).
-            q: number of ISIs in the burst.
-            u: sum of ranks of the burst ISIs.
-            isi_count: total number of ISIs in the spike train.
-        Returns:
-            RS: Rank Surprise statistic value.
-        """
-        # Compute probability P(Tq <= u)
-        probability = 0
-        for k in range((u - q) // isi_count + 1):
-            num = (-1) ** k * factorial(u - k * isi_count)
-            den = (
-                    factorial(k)
-                    * factorial(q - k)
-                    * factorial(u - k * isi_count - q)
-            )
-            probability += num / den
-        probability /= isi_count ** q
-
-        # Rank Surprise statistic
-        RS = -np.log(probability)
-        return RS
-
-    isi = np.diff(spike_train)
-    isi_count = len(isi)
-    ranks = np.argsort(np.argsort(isi)) + 1  # Compute ranks (1-based index)
-    marked_indices = np.where(isi <= limit)[0]  # Mark ISIs below the limit
-
-    detected_bursts = []
-    while len(marked_indices) > 0:
-        best_RS = 0
-        best_burst = None
-
-        # Test all contiguous sequences of marked indices
-        for start_idx, end_idx in combinations(marked_indices, 2):
-            if end_idx - start_idx + 1 > 1:  # Minimum of two spikes in a burst
-                burst_isis = ranks[start_idx:end_idx + 1]
-                u = sum(burst_isis)
-                q = len(burst_isis)
-                RS = compute_rank_surprise(isi, q, u, isi_count)
-                if RS > best_RS:
-                    best_RS = RS
-                    best_burst = (start_idx, end_idx, RS)
-
-        # If a burst is found with RS above the threshold, store it and remove ISIs
-        if best_burst and best_RS > threshold:
-            detected_bursts.append(best_burst)
-            start_idx, end_idx, _ = best_burst
-            marked_indices = marked_indices[
-                ~((marked_indices >= start_idx) & (marked_indices <= end_idx))
-            ]
-        else:
-            break
-
-    return detected_bursts
-
 # Example usage
-spike_train = np.array([0.0, 0.1, 0.15, 0.3, 0.5, 0.7, 0.72, 0.74, 0.9])
+spike_train = spike_times
 limit = np.percentile(np.diff(spike_train), 75)  # 75th percentile ISI threshold
 threshold = 5  # Minimum RS threshold
 
 bursts = exhaustive_surprise_maximization(spike_train, limit, threshold)
-print("Detected bursts:")
+print("Exhaustive Surprise Maximization ---- Detected bursts:")
+for burst in bursts:
+    print(f"Start: {burst[0]}, End: {burst[1]}, RS: {burst[2]:.2f}")
+
+
+bursts = detect_bursts(spike_times, isi_threshold = 0.3)
+print("Simple ---- Detected bursts:")
+print(bursts)
+# for burst in bursts:
+#     print(f"Start: {burst[0]}, End: {burst[1]}, RS: {burst[2]:.2f}")
+
+bursts = simplified_poisson_surprise(spike_times, start, stop, threshold=5)
+print("Simplified Poisson ---- Detected bursts:")
 for burst in bursts:
     print(f"Start: {burst[0]}, End: {burst[1]}, RS: {burst[2]:.2f}")
