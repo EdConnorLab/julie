@@ -19,7 +19,6 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
             window_indices = [i]
             after = i + 1
             before = i - 1
-            threshold = 0.5
             while after <= len(spike_count) - 1:
                 if spike_count[after] > max_value * threshold:
                     window_indices.append(after)
@@ -46,42 +45,11 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
 
 
 def unique_elements(list_of_lists):
-    # Flatten the list of lists into a single list
-    flat_list = [item for sublist in list_of_lists for item in sublist]
+    flat_list = [item for sublist in list_of_lists for item in sublist] # Flatten the list of lists into a single list
+    unique = list(set(flat_list)) # Remove duplicates
 
-    # Remove duplicates by converting to a set and back to a list
-    unique_elements = list(set(flat_list))
+    return sorted(unique)
 
-    # Return the sorted list of unique elements
-    return sorted(unique_elements)
-
-
-def find_consecutive_sublists(list_of_lists):
-    def process_single_list(numbers):
-        result = []
-        current_sequence = []
-
-        for i in range(len(numbers)):
-            if not current_sequence or numbers[i] == current_sequence[-1] + 1:
-                current_sequence.append(numbers[i])
-            else:
-                if len(current_sequence) > 1:
-                    result.append(current_sequence)
-                current_sequence = [numbers[i]]
-
-        if len(current_sequence) > 1:
-            result.append(current_sequence)
-
-        return result
-
-    # Process each sublist in the main list
-    results = []
-    for sublist in list_of_lists:
-        result = process_single_list(sublist)
-        if result:  # only add non-empty results
-            results.extend(result)
-
-    return results
 
 def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     max_value = max(spike_count)
@@ -90,10 +58,8 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     window_indices = []
     all_windows = []
     if max_value != 0:
-        starting_indices = [index for index, value in enumerate(spike_count) if value >= high_value]
-        values_that_pass = [spike_count[i] for i in starting_indices]
+        starting_indices = [index for ind, value in enumerate(spike_count) if value >= high_value]
         # print(f"starting indices are {starting_indices}")
-        # print(f"values that pass are {values_that_pass}")
         for i in starting_indices:
             initial_window_start = i
             window_indices.append(i)
@@ -112,12 +78,6 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
                     break
             if len(window_indices) > 1:
                 window_indices.sort()
-                # print(spike_count)
-                # print(f"window detected-- indices at {window_indices}")
-                # print(f"window detected-- {spike_values_in_window}")
-                # time = np.array(window_indices) * 0.05 + 0.05
-                # window_time_in_sec = (format(time[0], '.2f'), format(time[-1], '.2f'))
-                # print(window_time_in_sec)
                 all_windows.append(window_indices)
     else:
         pass

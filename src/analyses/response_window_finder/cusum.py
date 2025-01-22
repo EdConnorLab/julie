@@ -42,10 +42,6 @@ def cusum(data, k, h):
 
     return cusum_pos, cusum_neg, change_points
 
-def sum_lists(row):
-    # Using zip to pair up corresponding elements and sum them
-    return [sum(elements) for elements in zip(*row)]
-
 
 def extract_consecutive_ranges(numbers):
     """
@@ -99,7 +95,7 @@ if __name__ == '__main__':
 
     excel = pd.ExcelFile("/home/connorlab/Documents/GitHub/Julie/window_finder_results/Cortana_Windows.xlsx")
     all_rounds = excel.parse('AllRounds')
-    print(all_rounds)
+    # print(all_rounds)
     # date = "2023-09-26"
     # round_no = 3
     results = []
@@ -111,9 +107,11 @@ if __name__ == '__main__':
 
         time_chunk_size = 0.05  # in sec
 
-        unsorted_df = compute_fractional_and_rate_of_change(raw_unsorted_data, zombies, valid_channels, time_chunk_size)
+
         spike_counts = get_spike_counts_for_time_chunks(zombies, raw_unsorted_data, valid_channels, time_chunk_size)
-        spike_counts['total_sum'] = spike_counts.apply(lambda row: sum_lists(row), axis=1)
+        fractional_and_rate_of_change = compute_fractional_and_rate_of_change(raw_unsorted_data, zombies,
+                                                                              valid_channels, time_chunk_size)
+        spike_counts['total_sum'] = fractional_and_rate_of_change['total_sum']
         time = np.arange(0.05, 3.50, time_chunk_size)
 
         rounded_time = np.round(time, 2)
@@ -125,8 +123,6 @@ if __name__ == '__main__':
             if std_dev > 0:
                 mean = np.mean(data) # baseline mean
                 normalized_data = (data - mean)/std_dev
-
-                # print(normalized_data)
                 # Parameters
                 k = 0.8  # sensitivity parameter
                 # h = 3  # threshold
@@ -169,5 +165,3 @@ if __name__ == '__main__':
     print(results_sorted.head())
     results_expanded = results_sorted.explode('Time Windows')
     results_expanded.to_excel('cusum_window_after_explode.xlsx')
-
-    # print(results_expanded)
