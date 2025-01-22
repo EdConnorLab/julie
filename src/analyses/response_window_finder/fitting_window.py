@@ -11,10 +11,9 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
     print(spike_count)
     max_value = max(spike_count)
     all_windows = []
-    window_indices = []
     if max_value != 0:
         indices_of_max = [index for index, value in enumerate(spike_count) if value == max_value]
-        # print(f"max values are in {indices_of_max}")
+        print(f"max values are in {indices_of_max}")
         for i in indices_of_max:
             window_indices = [i]
             after = i + 1
@@ -38,10 +37,13 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
                 all_windows.append(window_indices)
     else:
         print("No spikes detected")
-    # remove duplicates
-    unique_tuples = set(tuple(x) for x in all_windows)
-    unique_windows = [list(x) for x in unique_tuples]
-    return unique_windows
+    unique_windows = unique_elements(all_windows)
+    # print(f"unique windows {unique_windows}")
+    final_windows = extract_consecutive_ranges(unique_windows)
+    # print(f"final windows {final_windows}")
+    spike_values_in_window = [spike_count[i] for i in unique_windows]
+    # print(f"all spike values: {spike_values_in_window}")
+    return final_windows, spike_values_in_window
 
 
 def unique_elements(list_of_lists):
@@ -122,21 +124,21 @@ if __name__ == '__main__':
             time_windows = extract_values_from_ranges(windows1, rounded_time)
             if len(windows1) > 0:
                 print(f"{date_only} Round No. {round_no} ")
-                # print(f"---------------For {ind}: {windows1}")
+                print(f"---------------For {ind}: {windows1}")
                 # print(f"---------------For {ind}: {spike_values}")
-                print(f"---------------For {ind}: {time_windows}")
+                # print(f"---------------For {ind}: {time_windows}")
 
-                results.append({
-                    'Date': date_only,
-                    'Round No': round_no,
-                    'Cell': str(ind),
-                    'Time Windows': time_windows
-                })
-
-    results_df = pd.DataFrame(results)
-    results_sorted = results_df.sort_values(by = ['Date', 'Round No', 'Cell'])
-    results_sorted.to_excel('fit_window_before_explode.xlsx')
-
-    print(results_sorted.head())
-    results_expanded = results_sorted.explode('Time Windows')
-    results_expanded.to_excel('fit_window_after_explode.xlsx')
+    #             results.append({
+    #                 'Date': date_only,
+    #                 'Round No': round_no,
+    #                 'Cell': str(ind),
+    #                 'Time Windows': time_windows
+    #             })
+    #
+    # results_df = pd.DataFrame(results)
+    # results_sorted = results_df.sort_values(by = ['Date', 'Round No', 'Cell'])
+    # results_sorted.to_excel('fit_window_before_explode.xlsx')
+    #
+    # print(results_sorted.head())
+    # results_expanded = results_sorted.explode('Time Windows')
+    # results_expanded.to_excel('fit_window_after_explode.xlsx')
