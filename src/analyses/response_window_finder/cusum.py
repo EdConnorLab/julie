@@ -154,16 +154,20 @@ if __name__ == '__main__':
                 # plt.ylabel('Value')
                 # plt.legend()
                 # plt.show()
-                results.append({
-                    'Date': date_only,
-                    'Round No': round_no,
-                    'Cell': str(index),
-                    'Time Windows': time_windows
-                })
+                if len(time_windows) > 0:
+                    results.append({
+                        'Date': date_only,
+                        'Round No': round_no,
+                        'Cell': str(index),
+                        'Time Windows': time_windows
+                    })
+
     results_df = pd.DataFrame(results)
-    results_df.to_excel('before_expanding.xlsx')
-    print(results_df)
-    results_expanded= results_df.explode('Time Windows')
-    results_expanded.to_excel('see.xlsx')
+    results_sorted = results_df.sort_values(by=['Date', 'Round No', 'Cell'])
+    results_sorted.to_excel('cusum_window_before_explode.xlsx')
+
+    print(results_sorted.head())
+    results_expanded = results_sorted.explode('Time Windows')
+    results_expanded.to_excel('cusum_window_after_explode.xlsx')
 
     # print(results_expanded)

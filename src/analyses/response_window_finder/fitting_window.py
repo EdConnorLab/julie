@@ -1,5 +1,7 @@
 import numpy as np
+import pandas as pd
 
+from cusum import extract_consecutive_ranges, extract_values_from_ranges
 from monkey_names import Zombies
 from response_window_finder import compute_fractional_and_rate_of_change
 from spike_count import get_spike_counts_for_time_chunks
@@ -43,14 +45,56 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
     return unique_windows
 
 
+def unique_elements(list_of_lists):
+    # Flatten the list of lists into a single list
+    flat_list = [item for sublist in list_of_lists for item in sublist]
+
+    # Remove duplicates by converting to a set and back to a list
+    unique_elements = list(set(flat_list))
+
+    # Return the sorted list of unique elements
+    return sorted(unique_elements)
+
+
+def find_consecutive_sublists(list_of_lists):
+    def process_single_list(numbers):
+        result = []
+        current_sequence = []
+
+        for i in range(len(numbers)):
+            if not current_sequence or numbers[i] == current_sequence[-1] + 1:
+                current_sequence.append(numbers[i])
+            else:
+                if len(current_sequence) > 1:
+                    result.append(current_sequence)
+                current_sequence = [numbers[i]]
+
+        if len(current_sequence) > 1:
+            result.append(current_sequence)
+
+        return result
+
+    # Process each sublist in the main list
+    results = []
+    for sublist in list_of_lists:
+        result = process_single_list(sublist)
+        if result:  # only add non-empty results
+            results.extend(result)
+
+    return results
+
 def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     max_value = max(spike_count)
+    start_threshold = 0.7
+    high_value = max_value * start_threshold
     window_indices = []
     all_windows = []
     if max_value != 0:
-        indices_of_max = [index for index, value in enumerate(spike_count) if value == max_value]
-        #    print(f"max values are in {indices_of_max}")
-        for i in indices_of_max:
+        starting_indices = [index for index, value in enumerate(spike_count) if value >= high_value]
+        values_that_pass = [spike_count[i] for i in starting_indices]
+        # print(f"starting indices are {starting_indices}")
+        # print(f"values that pass are {values_that_pass}")
+        for i in starting_indices:
             initial_window_start = i
             window_indices.append(i)
             while i < len(spike_count) - 1:
@@ -66,53 +110,73 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
                     i -= 1
                 else:
                     break
-
             if len(window_indices) > 1:
                 window_indices.sort()
                 # print(spike_count)
                 # print(f"window detected-- indices at {window_indices}")
-                spike_values_in_window = [spike_count[i] for i in window_indices]
                 # print(f"window detected-- {spike_values_in_window}")
                 # time = np.array(window_indices) * 0.05 + 0.05
                 # window_time_in_sec = (format(time[0], '.2f'), format(time[-1], '.2f'))
                 # print(window_time_in_sec)
                 all_windows.append(window_indices)
     else:
-        print(f"no spikes detected")
+        pass
+        # print(f"no spikes detected")
     # remove duplicates
-    unique_tuples = set(tuple(x) for x in all_windows)
-    unique_windows = [list(x) for x in unique_tuples]
-    return unique_windows
+    # print(f"spike count {spike_count}")
+    unique_windows = unique_elements(all_windows)
+    # print(f"unique windows {unique_windows}")
+    final_windows = extract_consecutive_ranges(unique_windows)
+    # print(f"final windows {final_windows}")
+    spike_values_in_window = [spike_count[i] for i in unique_windows]
+    # print(f"all spike values: {spike_values_in_window}")
+    return final_windows, spike_values_in_window
 
 if __name__ == '__main__':
 
     zombies = [member.value for name, member in Zombies.__members__.items()]
     del zombies[6]
     del zombies[-1]
-
-    date = "2023-09-26"
-    round_no = 1
-    raw_unsorted_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_no)
-
+    excel = pd.ExcelFile("/home/connorlab/Documents/GitHub/Julie/window_finder_results/Cortana_Windows.xlsx")
+    all_rounds = excel.parse('AllRounds')
+    results = []
     time_chunk_size = 0.05  # in sec
+    time = np.arange(0.05, 4.00, time_chunk_size)
+    rounded_time = np.round(time, 2)
+    # date = "2023-09-26"
+    # round_no = 1
+    for index, row in all_rounds.iterrows():
+        date = str(row['Date'])
+        round_no = row['Round']
+        date_only = row['Date'].strftime('%Y-%m-%d')
+        raw_unsorted_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_no)
 
-    spike_counts = get_spike_counts_for_time_chunks(zombies, raw_unsorted_data, valid_channels, time_chunk_size)
-    fractional_and_rate_of_change = compute_fractional_and_rate_of_change(raw_unsorted_data, zombies, valid_channels, time_chunk_size)
-    total_sum = fractional_and_rate_of_change['total_sum']
-    print(total_sum)
-    for index, spike_total in total_sum.items():
-        windows1 = expand_window_from_dynamic_threshold(spike_total, threshold=0.5)
-        if len(windows1) > 0:
-            print(f"-----------------------------For {index}: {windows1}")
+        time_chunk_size = 0.05  # in sec
 
-'''
-    for monkey in zombies:
-        monkey_specific_spike_counts = spike_counts[monkey]
-        for index, spike_count in monkey_specific_spike_counts.items():
-            print(f"{monkey} {index}")
-            windows1 = expand_window_from_max_threshold(spike_count, threshold = 0.5)
+        spike_counts = get_spike_counts_for_time_chunks(zombies, raw_unsorted_data, valid_channels, time_chunk_size)
+        fractional_and_rate_of_change = compute_fractional_and_rate_of_change(raw_unsorted_data, zombies, valid_channels, time_chunk_size)
+        total_sum = fractional_and_rate_of_change['total_sum']
+        # print(total_sum)
+        for ind, spike_total in total_sum.items():
+            windows1, spike_values = expand_window_from_dynamic_threshold(spike_total, threshold=0.5)
+            time_windows = extract_values_from_ranges(windows1, rounded_time)
             if len(windows1) > 0:
-                print(f"-----------------------------For {monkey} {index}: {windows1}")
-            # windows2 = expand_window_from_dynamic_threshold(spike_count, threshold = 0.5)
-            # print(f"For {monkey} {index}: {windows2}")
-'''
+                print(f"{date_only} Round No. {round_no} ")
+                # print(f"---------------For {ind}: {windows1}")
+                # print(f"---------------For {ind}: {spike_values}")
+                print(f"---------------For {ind}: {time_windows}")
+
+                results.append({
+                    'Date': date_only,
+                    'Round No': round_no,
+                    'Cell': str(ind),
+                    'Time Windows': time_windows
+                })
+
+    results_df = pd.DataFrame(results)
+    results_sorted = results_df.sort_values(by = ['Date', 'Round No', 'Cell'])
+    results_sorted.to_excel('fit_window_before_explode.xlsx')
+
+    print(results_sorted.head())
+    results_expanded = results_sorted.explode('Time Windows')
+    results_expanded.to_excel('fit_window_after_explode.xlsx')
