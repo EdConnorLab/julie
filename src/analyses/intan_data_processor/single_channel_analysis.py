@@ -13,7 +13,7 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    experiment_data_filename = "../../../compiled/1702587195889919_231214_155316_round4.pkl"
+    experiment_data_filename = "../../../Cortana/compiled/1702587195889919_231214_155316_round4.pkl"
     # base_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/analyses/"
     # Get the current script directory
     script_dir = Path(__file__).parent
