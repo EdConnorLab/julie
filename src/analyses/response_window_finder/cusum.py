@@ -134,22 +134,32 @@ if __name__ == '__main__':
                 print(f"---------------- {date} round no. {round_no} {index}----------------")
                 print(windows)
                 print(time_windows)
+                print(change_points)
 
                 # Extract y-values from data at these indices
                 y_values_at_change_points = [data[i] for i in change_points]
                 t_values_at_change_points = [rounded_time[i] for i in change_points]
                 # Plotting
-                # plt.figure(figsize=(12, 6))
-                # plt.plot(time[:len(data)], data, label='Total Spike Count')
-                # plt.plot(time[:len(data)], cusum_pos, label='CUSUM+', linestyle='--')
-                # plt.plot(time[:len(data)], cusum_neg, label='CUSUM-', linestyle='--')
-                # plt.scatter(t_values_at_change_points, y_values_at_change_points, color='red', zorder=5)
-                # plt.axhline(y=k, color='green', linestyle='--', label='Threshold')
-                # plt.title(f'{date} Round {round_no} {index} CUSUM Test for Change Detection')
-                # plt.xlabel('Time')
-                # plt.ylabel('Value')
-                # plt.legend()
-                # plt.show()
+                plt.figure(figsize=(12, 6))
+                plt.plot(time[:len(data)], data, label='Total Spike Count')
+                plt.plot(time[:len(data)], cusum_pos, label='CUSUM+', linestyle='--')
+                plt.plot(time[:len(data)], cusum_neg, label='CUSUM-', linestyle='--')
+                plt.scatter(t_values_at_change_points, y_values_at_change_points, color='red', zorder=5)
+                plt.axhline(y=k, color='green', linestyle='--', label='Threshold')
+
+                # Using your function to get consecutive ranges
+                consecutive_ranges = extract_consecutive_ranges(change_points)
+                print(f"consecutive ranges: {consecutive_ranges}")
+                overall_max = np.maximum.reduce([data, cusum_pos, cusum_neg])
+                # Shading consecutive ranges
+                for start, end in consecutive_ranges:
+                    plt.fill_betweenx([0, max(overall_max)], rounded_time[start], rounded_time[end], color='red', alpha=0.4)
+
+                plt.title(f'{date_only} Round {round_no} {index} CUSUM Test for Change Detection')
+                plt.xlabel('Time')
+                plt.ylabel('Value')
+                plt.legend()
+                plt.show()
                 if len(time_windows) > 0:
                     results.append({
                         'Date': date_only,

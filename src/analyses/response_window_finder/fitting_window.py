@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 
 from cusum import extract_consecutive_ranges, extract_values_from_ranges
 from monkey_names import Zombies
@@ -11,6 +12,7 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
     print(spike_count)
     max_value = max(spike_count)
     all_windows = []
+    window_indices = []
     if max_value != 0:
         indices_of_max = [index for index, value in enumerate(spike_count) if value == max_value]
         print(f"max values are in {indices_of_max}")
@@ -37,12 +39,13 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
                 all_windows.append(window_indices)
     else:
         print("No spikes detected")
+    # remove duplicates
     unique_windows = unique_elements(all_windows)
-    # print(f"unique windows {unique_windows}")
+    print(f"unique windows {unique_windows}")
     final_windows = extract_consecutive_ranges(unique_windows)
-    # print(f"final windows {final_windows}")
+    print(f"final windows {final_windows}")
     spike_values_in_window = [spike_count[i] for i in unique_windows]
-    # print(f"all spike values: {spike_values_in_window}")
+    print(f"all spike values: {spike_values_in_window}")
     return final_windows, spike_values_in_window
 
 
@@ -57,42 +60,46 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     max_value = max(spike_count)
     start_threshold = 0.7
     high_value = max_value * start_threshold
-    window_indices = []
+    all_indices = []
     all_windows = []
+    print('start!')
+    print(spike_count)
+    print(f'max_value is: {max_value}')
+    print(f'high value is: {high_value}')
     if max_value != 0:
-        starting_indices = [index for ind, value in enumerate(spike_count) if value >= high_value]
-        # print(f"starting indices are {starting_indices}")
+        starting_indices = [ind for ind, value in enumerate(spike_count) if value >= high_value]
+        print(f"starting indices are {starting_indices}")
         for i in starting_indices:
             initial_window_start = i
-            window_indices.append(i)
+            all_indices.append(i)
             while i < len(spike_count) - 1:
                 if spike_count[i + 1] > spike_count[i] * threshold:
-                    window_indices.append(i + 1)
+                    all_indices.append(i + 1)
                     i += 1
                 else:
                     break
             i = initial_window_start
             while i > 0:
                 if spike_count[i - 1] > spike_count[i] * threshold:
-                    window_indices.append(i - 1)
+                    all_indices.append(i - 1)
                     i -= 1
                 else:
                     break
-            if len(window_indices) > 1:
-                window_indices.sort()
-                all_windows.append(window_indices)
+            if len(all_indices) > 1:
+                all_indices.sort()
+                all_windows.append(all_indices)
     else:
         pass
         # print(f"no spikes detected")
     # remove duplicates
-    # print(f"spike count {spike_count}")
-    unique_windows = unique_elements(all_windows)
-    # print(f"unique windows {unique_windows}")
-    final_windows = extract_consecutive_ranges(unique_windows)
-    # print(f"final windows {final_windows}")
-    spike_values_in_window = [spike_count[i] for i in unique_windows]
-    # print(f"all spike values: {spike_values_in_window}")
-    return final_windows, spike_values_in_window
+    print(f"spike count {spike_count}")
+    win_indices = unique_elements(all_windows)
+    print(f"window indices {win_indices}")
+    final_windows = extract_consecutive_ranges(win_indices)
+    print(f"final windows {final_windows}")
+    spike_values_in_window = [spike_count[i] for i in win_indices]
+    print(f"all spike values: {spike_values_in_window}")
+    return final_windows, spike_values_in_window, win_indices
 
 if __name__ == '__main__':
 
@@ -111,6 +118,7 @@ if __name__ == '__main__':
         date = str(row['Date'])
         round_no = row['Round']
         date_only = row['Date'].strftime('%Y-%m-%d')
+        print(f"we will search for windows in {date_only} round {round_no}")
         raw_unsorted_data, valid_channels, sorted_data = get_raw_data_and_channels_from_files(date, round_no)
 
         time_chunk_size = 0.05  # in sec
@@ -119,26 +127,47 @@ if __name__ == '__main__':
         fractional_and_rate_of_change = compute_fractional_and_rate_of_change(raw_unsorted_data, zombies, valid_channels, time_chunk_size)
         total_sum = fractional_and_rate_of_change['total_sum']
         # print(total_sum)
-        for ind, spike_total in total_sum.items():
-            windows1, spike_values = expand_window_from_dynamic_threshold(spike_total, threshold=0.5)
+        for channel, spike_total in total_sum.items():
+            windows1, spike_values, win_indices = expand_window_from_dynamic_threshold(spike_total, threshold=0.5)
             time_windows = extract_values_from_ranges(windows1, rounded_time)
+
             if len(windows1) > 0:
-                print(f"{date_only} Round No. {round_no} ")
-                print(f"---------------For {ind}: {windows1}")
+                print('')
+                print(f"Final Results: {date_only} Round No. {round_no} ")
+                print(f"---------------For {channel}: {windows1}")
+                y_values_at_change_points = [spike_total[i] for i in win_indices]
+                t_values_at_change_points = [rounded_time[i] for i in win_indices]
                 # print(f"---------------For {ind}: {spike_values}")
                 # print(f"---------------For {ind}: {time_windows}")
+                plt.figure(figsize=(12, 6))
+                plt.plot(time[:len(spike_total)], spike_total, label='Total Spike Count')
+                plt.scatter(t_values_at_change_points, y_values_at_change_points, color='red', zorder=5)
 
-    #             results.append({
-    #                 'Date': date_only,
-    #                 'Round No': round_no,
-    #                 'Cell': str(ind),
-    #                 'Time Windows': time_windows
-    #             })
-    #
-    # results_df = pd.DataFrame(results)
-    # results_sorted = results_df.sort_values(by = ['Date', 'Round No', 'Cell'])
-    # results_sorted.to_excel('fit_window_before_explode.xlsx')
-    #
-    # print(results_sorted.head())
-    # results_expanded = results_sorted.explode('Time Windows')
-    # results_expanded.to_excel('fit_window_after_explode.xlsx')
+                # Using your function to get consecutive ranges
+                consecutive_ranges = extract_consecutive_ranges(win_indices)
+                print(f"consecutive ranges: {consecutive_ranges}")
+                # Shading consecutive ranges
+                for start, end in consecutive_ranges:
+                    plt.fill_betweenx([0, max(spike_total)], rounded_time[start], rounded_time[end], color='red', alpha=0.4)
+
+
+                plt.title(f'{date_only} Round {round_no} {channel} Fitting Window Algorithm')
+                plt.xlabel('Time')
+                plt.ylabel('Value')
+                plt.legend()
+                plt.show()
+
+                results.append({
+                    'Date': date_only,
+                    'Round No': round_no,
+                    'Cell': str(channel),
+                    'Time Windows': time_windows
+                })
+
+    results_df = pd.DataFrame(results)
+    results_sorted = results_df.sort_values(by = ['Date', 'Round No', 'Cell'])
+    results_sorted.to_excel('fit_window_before_explode.xlsx')
+
+    print(results_sorted.head())
+    results_expanded = results_sorted.explode('Time Windows')
+    results_expanded.to_excel('fit_window_after_explode.xlsx')
