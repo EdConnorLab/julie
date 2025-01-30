@@ -1,5 +1,6 @@
 import pandas as pd
 
+import channel_enum_resolvers
 import spike_rate_computation
 from channel_enum_resolvers import drop_duplicate_channels, is_channel_in_dict, get_value_from_dict_with_channel
 from single_channel_analysis import read_pickle, get_spike_count
@@ -159,6 +160,66 @@ def count_spikes_for_specific_cell_time_windowed(raw_data, cell, time_window):
         spike_count_per_channel[monkey] = pd.Series(monkey_spike_counts)
     return spike_count_per_channel
 
+
+def get_spike_count_for_single_neuron_with_time_window(cell_metadata):
+    """
+    Spike count for a channel with time window (handles both sorted and unsorted channels)
+
+    Parameters:
+        cell_metadata (pandas.DataFrame) contains the following columns:
+            - 'Date': need to convert to YYYY-MM-DD format
+            - 'Round No.': int (i.e. 2)
+            - 'Cell': string (i.e. Channel.C_013 or Channel.C_010_Unit 1)
+            - 'Time Window': in ms (i.e. (250, 750))
+
+    Returns:
+    all_spike_count (pandas.DataFrame)
+
+    """
+    reader = RecordingMetadataReader()
+    rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
+    experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
+
+    results = []
+    for _, row in experimental_rounds.iterrows():
+        pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'], row['Round No.'])
+        raw_trial_data = read_pickle(pickle_filepath)
+        sorted_file = round_dir_path / 'sorted_spikes.pkl'
+
+        if sorted_file.exists():
+            sorted_data = read_sorted_data(round_dir_path)
+
+        cells = cell_metadata[((cell_metadata['Date'] == row['Date']) & (cell_metadata['Round No.'] == row['Round No.']))]
+        for _, cell in cells.iterrows():
+            if 'Unit' not in cell['Cell']:  # unsorted cells
+                cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
+                if isinstance(cell['Time Window'], str):
+                    time_window = tuple(float(num) for num in cell['Time Window'].strip('()').split(','))
+                else:
+                    time_window = cell['Time Window']
+                unsorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(raw_trial_data, cell['Cell'],
+                                                                                          time_window)
+                unsorted_cells_spike_count_dict = unsorted_cells_spike_count.to_dict(orient='records')[0]
+                unsorted_cells_spike_count_dict['Cell'] = cell['Cell']
+                unsorted_cells_spike_count_dict['Date'] = row['Date']
+                unsorted_cells_spike_count_dict['Round No.'] = row['Round No.']
+                unsorted_cells_spike_count_dict['Time Window'] = cell['Time Window']
+                results.append(unsorted_cells_spike_count_dict)
+
+            else:  # sorted cells
+                sorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(
+                    sorted_data, cell['Cell'], cell['Time Window'])
+                sorted_cells_spike_count_dict = sorted_cells_spike_count.to_dict(orient='records')[0]
+                sorted_cells_spike_count_dict['Cell'] = cell['Cell']
+                sorted_cells_spike_count_dict['Date'] = row['Date']
+                sorted_cells_spike_count_dict['Round No.'] = row['Round No.']
+                sorted_cells_spike_count_dict['Time Window'] = cell['Time Window']
+                results.append(sorted_cells_spike_count_dict)
+
+    all_spike_count = pd.DataFrame(results)
+    all_spike_count.set_index('Cell', inplace=True)
+
+    return all_spike_count
 
 
 def add_metadata_to_spike_counts(spike_count_df, date, round_number, time_window):
