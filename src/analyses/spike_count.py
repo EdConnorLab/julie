@@ -145,9 +145,9 @@ def count_spikes_for_specific_cell_time_windowed(raw_data, cell, time_window):
             if is_channel_in_dict(cell, row['SpikeTimes']):
                 data = get_value_from_dict_with_channel(cell, row['SpikeTimes'])
                 if time_window is not None:
-                    window_start_micro, window_end_micro = time_window
-                    window_start_sec = window_start_micro * 0.001
-                    window_end_sec = window_end_micro * 0.001
+                    window_start_milli, window_end_milli = time_window
+                    window_start_sec = window_start_milli * 0.001
+                    window_end_sec = window_end_milli * 0.001
                     start_time, _ = row['EpochStartStop']
                     spike_counts.append(
                         get_spike_count(data, (start_time + window_start_sec, start_time + window_end_sec)))

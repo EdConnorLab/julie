@@ -13,8 +13,8 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
     max_value = max(spike_count)
     all_windows = []
     window_indices = []
-    if max_value != 0:
-        indices_of_max = [index for index, value in enumerate(spike_count) if value == max_value]
+    if max_value > 2:
+        indices_of_max = [ind for ind, value in enumerate(spike_count) if value == max_value]
         print(f"max values are in {indices_of_max}")
         for i in indices_of_max:
             window_indices = [i]
@@ -62,11 +62,10 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     high_value = max_value * start_threshold
     all_indices = []
     all_windows = []
-    print('start!')
     print(spike_count)
     print(f'max_value is: {max_value}')
     print(f'high value is: {high_value}')
-    if max_value != 0:
+    if max_value > 2:
         starting_indices = [ind for ind, value in enumerate(spike_count) if value >= high_value]
         print(f"starting indices are {starting_indices}")
         for i in starting_indices:
@@ -91,15 +90,35 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     else:
         pass
         # print(f"no spikes detected")
+
+
+
     # remove duplicates
-    print(f"spike count {spike_count}")
+    #print(f"spike count {spike_count}")
     win_indices = unique_elements(all_windows)
     print(f"window indices {win_indices}")
-    final_windows = extract_consecutive_ranges(win_indices)
+    # combine two windows if they are only two indices apart
+    #final_win_indices= fill_missing_ones(win_indices)
+    final_win_indices = win_indices
+    final_windows = extract_consecutive_ranges(final_win_indices)
     print(f"final windows {final_windows}")
-    spike_values_in_window = [spike_count[i] for i in win_indices]
+    spike_values_in_window = [spike_count[i] for i in final_win_indices]
     print(f"all spike values: {spike_values_in_window}")
-    return final_windows, spike_values_in_window, win_indices
+    return final_windows, spike_values_in_window, final_win_indices
+
+def fill_missing_ones(numbers):
+    if not numbers:
+        return []
+
+    filled = []
+    i = 0
+    while i < len(numbers) - 1:
+        filled.append(numbers[i])
+        if numbers[i + 1] == numbers[i] + 2:
+            filled.append(numbers[i] + 1)
+        i += 1
+    filled.append(numbers[len(numbers) - 1])
+    return filled
 
 if __name__ == '__main__':
 
@@ -110,7 +129,7 @@ if __name__ == '__main__':
     all_rounds = excel.parse('AllRounds')
     results = []
     time_chunk_size = 0.05  # in sec
-    time = np.arange(0.05, 4.00, time_chunk_size)
+    time = np.arange(time_chunk_size, 4.00, time_chunk_size)
     rounded_time = np.round(time, 2)
     # date = "2023-09-26"
     # round_no = 1
@@ -139,6 +158,8 @@ if __name__ == '__main__':
                 t_values_at_change_points = [rounded_time[i] for i in win_indices]
                 # print(f"---------------For {ind}: {spike_values}")
                 # print(f"---------------For {ind}: {time_windows}")
+
+                # # Plot
                 plt.figure(figsize=(12, 6))
                 plt.plot(time[:len(spike_total)], spike_total, label='Total Spike Count')
                 plt.scatter(t_values_at_change_points, y_values_at_change_points, color='red', zorder=5)
@@ -159,15 +180,16 @@ if __name__ == '__main__':
 
                 results.append({
                     'Date': date_only,
-                    'Round No': round_no,
+                    'Round No.': round_no,
                     'Cell': str(channel),
-                    'Time Windows': time_windows
+                    'Time Window': time_windows
                 })
 
+    # Save
     results_df = pd.DataFrame(results)
-    results_sorted = results_df.sort_values(by = ['Date', 'Round No', 'Cell'])
+    results_sorted = results_df.sort_values(by = ['Date', 'Round No.', 'Cell'])
     results_sorted.to_excel('fit_window_before_explode.xlsx')
 
-    print(results_sorted.head())
-    results_expanded = results_sorted.explode('Time Windows')
+    print(results_sorted.shape)
+    results_expanded = results_sorted.explode('Time Window')
     results_expanded.to_excel('fit_window_after_explode.xlsx')

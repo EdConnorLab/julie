@@ -5,7 +5,6 @@ import pandas as pd
 from channel_enum_resolvers import is_channel_in_dict, get_value_from_dict_with_channel
 from initial_4feature_lin_reg import get_spike_count_for_single_neuron_with_time_window, \
     get_metadata_for_list_of_cells_with_time_window, get_metadata_for_preliminary_analysis
-import spike_count
 from monkey_names import Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from scipy.stats import f_oneway, kruskal
@@ -41,6 +40,7 @@ def perform_anova_on_dataframe_rows_for_time_windowed(df):
         # Extract groups as lists
         groups = [group for group in row if isinstance(group, list)]
         # Perform OneWay ANOVA
+
         f_val, p_val = f_oneway(*groups)
         results.append({'Date': row['Date'], 'Round No.': row['Round No.'],
                         'Time Window': row['Time Window'],
@@ -109,32 +109,74 @@ def two_sample_t_test(df):
 
 if __name__ == '__main__':
     '''
+    Date Created: 2025-01-29
+    ANOVA for windows found from cusum or max count algorithm
+    '''
+    zombies = [member.value for name, member in Zombies.__members__.items()]
+    del zombies[6]
+    del zombies[-1]
+    cusum_excel = pd.ExcelFile("/home/connorlab/Documents/GitHub/Julie/src/analyses/response_window_finder/cusum_window_after_explode.xlsx")
+    cusum_windows = cusum_excel.parse(cusum_excel.sheet_names[0])
+    cusum_windows['Time Window'] = cusum_windows['Time Window'].apply(lambda s: tuple(int(float(num) * 1000) for num in s.strip('()').split(',')))
+
+    fit_excel = pd.ExcelFile("/home/connorlab/Documents/GitHub/Julie/src/analyses/response_window_finder/fit_window_after_explode.xlsx")
+    fit_windows = fit_excel.parse(fit_excel.sheet_names[0])
+    fit_windows['Time Window'] = fit_windows['Time Window'].apply(lambda s: tuple(int(float(num) * 1000) for num in s.strip('()').split(',')))
+
+    print("--------------------------------------------- cusum windows ----------------------------------------------------------")
+    print(cusum_windows)
+    print("----------------------------------------------- fit windows ----------------------------------------------------------")
+    print(fit_windows)
+    cusum_spike_count = get_spike_count_for_single_neuron_with_time_window(cusum_windows)
+    fit_spike_count = get_spike_count_for_single_neuron_with_time_window(fit_windows)
+    print(cusum_spike_count)
+    print(fit_spike_count)
+    zombies_columns = [col for col in zombies if col in cusum_spike_count.columns]
+    additional_columns = ['Date', 'Round No.', 'Time Window']
+    zombies_cusum_spike_count = cusum_spike_count[zombies_columns + additional_columns]
+    zombies_fit_spike_count = fit_spike_count[zombies_columns + additional_columns]
+
+    cusum_anova_results, cusum_sig_results = perform_anova_on_dataframe_rows_for_time_windowed(zombies_cusum_spike_count)
+
+    print('------------------------------------ cusum window results -----------------------------------')
+    # print(cusum_anova_results)
+    print(cusum_sig_results)
+    cusum_anova_results.to_excel('cusum_anova_results.xlsx')
+    cusum_sig_results.to_excel('cusum_sig_results.xlsx')
+
+    fit_anova_results, fit_sig_results = perform_anova_on_dataframe_rows_for_time_windowed(zombies_fit_spike_count)
+    print('------------------------------------ fit window results -----------------------------------')
+    # print(fit_anova_results)
+    print(fit_sig_results)
+    fit_anova_results.to_excel('fit_anova_results.xlsx')
+    fit_sig_results.to_excel('fit_sig_results.xlsx')
+
+
+    '''
     Date Created : 2024-04-29
     ANOVA for selected cells from Ed (time windowed)
     
     Last Updated: 2024-07-03 
     Latest Updates: running ANOVA for BestFrans
     '''
-
-
-    # Get list of monkey names
-    zombies = [member.value for name, member in Zombies.__members__.items()]
-    bestfrans = [member.value for name, member in BestFrans.__members__.items()]
-
-    # Get metadata for list of cells (time windowed)
-    time_windowed_cells = get_metadata_for_list_of_cells_with_time_window("BestFrans_Cells")
-
-    # calculate spike count
-    spike_count = get_spike_count_for_single_neuron_with_time_window(time_windowed_cells)
-    bestfrans_columns = [col for col in zombies if col in spike_count.columns]
-    bestfrans_spike_count = spike_count[bestfrans_columns]
-    # adding in the Date and Round No. columns because above operation got rid of it
-    bestfrans_spike_count['Date'] = spike_count['Date']
-    bestfrans_spike_count['Round No.'] = spike_count['Round No.']
-
-    anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(bestfrans_spike_count)
-    sig_results.to_csv('sig_ANOVA_results_for_2nd_list_zombies.csv')
-    anova_results.to_csv('Windowed_ANOVA_sig_results_Zombies_new.csv')
+    # # Get list of monkey names
+    # zombies = [member.value for name, member in Zombies.__members__.items()]
+    # bestfrans = [member.value for name, member in BestFrans.__members__.items()]
+    #
+    # # Get metadata for list of cells (time windowed)
+    # time_windowed_cells = get_metadata_for_list_of_cells_with_time_window("BestFrans_Cells")
+    #
+    # # calculate spike count
+    # spike_count = get_spike_count_for_single_neuron_with_time_window(time_windowed_cells)
+    # bestfrans_columns = [col for col in zombies if col in spike_count.columns]
+    # bestfrans_spike_count = spike_count[bestfrans_columns]
+    # # adding in the Date and Round No. columns because above operation got rid of it
+    # bestfrans_spike_count['Date'] = spike_count['Date']
+    # bestfrans_spike_count['Round No.'] = spike_count['Round No.']
+    #
+    # anova_results, sig_results = perform_anova_on_dataframe_rows_for_time_windowed(bestfrans_spike_count)
+    # sig_results.to_csv('sig_ANOVA_results_for_2nd_list_zombies.csv')
+    # anova_results.to_csv('Windowed_ANOVA_sig_results_Zombies_new.csv')
 
     '''
     Date Created: 2024-04-29

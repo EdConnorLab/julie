@@ -14,7 +14,7 @@ from spike_count import get_spike_counts_for_time_chunks
 from spike_rate_computation import get_raw_data_and_channels_from_files
 
 
-def cusum(data, k, h):
+def cusum(data, max_count, k, h):
     """
     Perform CUSUM change detection.
 
@@ -39,6 +39,8 @@ def cusum(data, k, h):
 
         if cusum_pos[t] > h or cusum_neg[t] > h:
             change_points.append(t)
+    if max_count < 3:
+        change_points = []
 
     return cusum_pos, cusum_neg, change_points
 
@@ -88,6 +90,20 @@ def extract_values_from_ranges(ranges, values):
             extracted_values.append((values[start], values[end]))
     return extracted_values
 
+def fill_missing_ones(numbers):
+    if not numbers:
+        return []
+
+    filled = []
+    i = 0
+    while i < len(numbers) - 1:
+        filled.append(numbers[i])
+        if numbers[i + 1] == numbers[i] + 2:
+            filled.append(numbers[i] + 1)
+        i += 1
+    filled.append(numbers[len(numbers) - 1])
+    return filled
+
 if __name__ == '__main__':
     zombies = [member.value for name, member in Zombies.__members__.items()]
     del zombies[6]
@@ -123,55 +139,59 @@ if __name__ == '__main__':
             if std_dev > 0:
                 mean = np.mean(data) # baseline mean
                 normalized_data = (data - mean)/std_dev
+                max_data = max(data)
                 # Parameters
-                k = 0.8  # sensitivity parameter
-                # h = 3  # threshold
+                k = 0.9  # sensitivity parameter
+                h = 0.3  # threshold
 
-                cusum_pos, cusum_neg, change_points = cusum(normalized_data, k, k)
-                windows = extract_consecutive_ranges(change_points)
+                cusum_pos, cusum_neg, change_points = cusum(normalized_data, max_data, k, h)
+                # final_change_points = fill_missing_ones(change_points)
+                final_change_points = change_points
+                windows = extract_consecutive_ranges(final_change_points)
 
                 time_windows = extract_values_from_ranges(windows, rounded_time)
                 print(f"---------------- {date} round no. {round_no} {index}----------------")
                 print(windows)
                 print(time_windows)
-                print(change_points)
+                print(final_change_points)
 
                 # Extract y-values from data at these indices
-                y_values_at_change_points = [data[i] for i in change_points]
-                t_values_at_change_points = [rounded_time[i] for i in change_points]
-                # Plotting
-                plt.figure(figsize=(12, 6))
-                plt.plot(time[:len(data)], data, label='Total Spike Count')
-                plt.plot(time[:len(data)], cusum_pos, label='CUSUM+', linestyle='--')
-                plt.plot(time[:len(data)], cusum_neg, label='CUSUM-', linestyle='--')
-                plt.scatter(t_values_at_change_points, y_values_at_change_points, color='red', zorder=5)
-                plt.axhline(y=k, color='green', linestyle='--', label='Threshold')
+                y_values_at_change_points = [data[i] for i in final_change_points]
+                t_values_at_change_points = [rounded_time[i] for i in final_change_points]
 
-                # Using your function to get consecutive ranges
-                consecutive_ranges = extract_consecutive_ranges(change_points)
-                print(f"consecutive ranges: {consecutive_ranges}")
-                overall_max = np.maximum.reduce([data, cusum_pos, cusum_neg])
-                # Shading consecutive ranges
-                for start, end in consecutive_ranges:
-                    plt.fill_betweenx([0, max(overall_max)], rounded_time[start], rounded_time[end], color='red', alpha=0.4)
+                # # Plotting
+                # plt.figure(figsize=(12, 6))
+                # plt.plot(time[:len(data)], data, label='Total Spike Count')
+                # plt.plot(time[:len(data)], cusum_pos, label='CUSUM+', linestyle='--')
+                # plt.plot(time[:len(data)], cusum_neg, label='CUSUM-', linestyle='--')
+                # plt.scatter(t_values_at_change_points, y_values_at_change_points, color='red', zorder=5)
+                # plt.axhline(y=k, color='green', linestyle='--', label='Threshold')
+                # # Using your function to get consecutive ranges
+                # consecutive_ranges = extract_consecutive_ranges(change_points)
+                # print(f"consecutive ranges: {consecutive_ranges}")
+                # overall_max = np.maximum.reduce([data, cusum_pos, cusum_neg])
+                # # Shading consecutive ranges
+                # for start, end in consecutive_ranges:
+                #     plt.fill_betweenx([0, max(overall_max)], rounded_time[start], rounded_time[end], color='red', alpha=0.4)
+                #
+                # plt.title(f'{date_only} Round {round_no} {index} CUSUM Test for Change Detection')
+                # plt.xlabel('Time')
+                # plt.ylabel('Value')
+                # plt.legend()
+                # plt.show()
 
-                plt.title(f'{date_only} Round {round_no} {index} CUSUM Test for Change Detection')
-                plt.xlabel('Time')
-                plt.ylabel('Value')
-                plt.legend()
-                plt.show()
                 if len(time_windows) > 0:
                     results.append({
                         'Date': date_only,
-                        'Round No': round_no,
+                        'Round No.': round_no,
                         'Cell': str(index),
-                        'Time Windows': time_windows
+                        'Time Window': time_windows
                     })
 
     results_df = pd.DataFrame(results)
-    results_sorted = results_df.sort_values(by=['Date', 'Round No', 'Cell'])
+    results_sorted = results_df.sort_values(by=['Date', 'Round No.', 'Cell'])
     results_sorted.to_excel('cusum_window_before_explode.xlsx')
 
     print(results_sorted.head())
-    results_expanded = results_sorted.explode('Time Windows')
+    results_expanded = results_sorted.explode('Time Window')
     results_expanded.to_excel('cusum_window_after_explode.xlsx')
