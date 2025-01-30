@@ -7,9 +7,9 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from statsmodels.regression.linear_model import OLS
 import channel_enum_resolvers
 from single_unit_analysis import read_sorted_data
-from spike_count import count_spikes_for_specific_cell_time_windowed
+from spike_count import count_spikes_for_specific_cell_time_windowed, get_spike_count_for_single_neuron_with_time_window
 from spike_rate_computation import compute_average_spike_rate_for_single_neuron_for_specific_time_window, \
-    get_average_spike_rates_for_each_monkey
+    get_average_spike_rates_for_each_monkey, compute_average_spike_rates_for_list_of_cells_with_time_windows
 from monkey_names import Zombies, BestFrans
 from data_readers.recording_metadata_reader import RecordingMetadataReader
 from single_channel_analysis import read_pickle
@@ -61,113 +61,6 @@ def get_metadata_for_ANOVA_passed_cells_time_windowed():
     metadata_for_anova_passed['Time Window'] = metadata_for_anova_passed['Time Window'].apply(lambda x: eval(x) if isinstance(x, str) else x)
     metadata_anova_passed_subset = metadata_for_anova_passed[['Date', 'Round No.', 'Cell', 'Time Window']]
     return metadata_anova_passed_subset
-
-
-def get_spike_count_for_single_neuron_with_time_window(cell_metadata):
-    """
-    Spike count for a channel with time window (handles both sorted and unsorted channels)
-
-    Parameters:
-        cell_metadata (pandas.DataFrame) contains the following columns:
-            - 'Date': need to convert to YYYY-MM-DD format
-            - 'Round No.': int (i.e. 2)
-            - 'Cell': string (i.e. Channel.C_013 or Channel.C_010_Unit 1)
-            - 'Time Window': in ms (i.e. (250, 750))
-
-    Returns:
-    all_spike_count (pandas.DataFrame)
-
-    """
-    reader = RecordingMetadataReader()
-    rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
-    experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
-
-    results = []
-    for _, row in experimental_rounds.iterrows():
-        pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'], row['Round No.'])
-        raw_trial_data = read_pickle(pickle_filepath)
-        sorted_file = round_dir_path / 'sorted_spikes.pkl'
-
-        if sorted_file.exists():
-            sorted_data = read_sorted_data(round_dir_path)
-
-        cells = cell_metadata[((cell_metadata['Date'] == row['Date']) & (cell_metadata['Round No.'] == row['Round No.']))]
-        for _, cell in cells.iterrows():
-            if 'Unit' not in cell['Cell']:  # unsorted cells
-                cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
-                if isinstance(cell['Time Window'], str):
-                    time_window = tuple(float(num) for num in cell['Time Window'].strip('()').split(','))
-                else:
-                    time_window = cell['Time Window']
-                unsorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(raw_trial_data, cell['Cell'],
-                                                                                          time_window)
-                unsorted_cells_spike_count_dict = unsorted_cells_spike_count.to_dict(orient='records')[0]
-                unsorted_cells_spike_count_dict['Cell'] = cell['Cell']
-                unsorted_cells_spike_count_dict['Date'] = row['Date']
-                unsorted_cells_spike_count_dict['Round No.'] = row['Round No.']
-                unsorted_cells_spike_count_dict['Time Window'] = cell['Time Window']
-                results.append(unsorted_cells_spike_count_dict)
-
-            else:  # sorted cells
-                sorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(
-                    sorted_data, cell['Cell'], cell['Time Window'])
-                sorted_cells_spike_count_dict = sorted_cells_spike_count.to_dict(orient='records')[0]
-                sorted_cells_spike_count_dict['Cell'] = cell['Cell']
-                sorted_cells_spike_count_dict['Date'] = row['Date']
-                sorted_cells_spike_count_dict['Round No.'] = row['Round No.']
-                sorted_cells_spike_count_dict['Time Window'] = cell['Time Window']
-                results.append(sorted_cells_spike_count_dict)
-
-    all_spike_count = pd.DataFrame(results)
-    all_spike_count.set_index('Cell', inplace=True)
-
-    return all_spike_count
-
-
-def compute_average_spike_rates_for_list_of_cells_with_time_windows(cell_metadata):
-    reader = RecordingMetadataReader()
-    rows_with_unique_rounds = cell_metadata.drop_duplicates(subset=['Date', 'Round No.'])
-    experimental_rounds = rows_with_unique_rounds[['Date', 'Round No.']]
-
-    results = []
-    for _, row in experimental_rounds.iterrows():
-        pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'].strftime("%Y-%m-%d"), row['Round No.'])
-        raw_trial_data = read_pickle(pickle_filepath)
-
-        sorted_file = round_dir_path / 'sorted_spikes.pkl'
-        if sorted_file.exists():
-            sorted_data = read_sorted_data(round_dir_path)
-
-        cells = cell_metadata[((cell_metadata['Date'] == row['Date']) & (cell_metadata['Round No.'] == row['Round No.']))]
-
-        for _, cell in cells.iterrows():
-            if 'Unit' not in cell['Cell']:  # unsorted cells
-                cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
-                unsorted_cells_spike_rates = compute_average_spike_rate_for_single_neuron_for_specific_time_window(
-                    raw_trial_data, cell['Cell'], cell['Time Window'])
-
-
-                unsorted_cells_spike_rates_dict = unsorted_cells_spike_rates.to_dict(orient='records')[0]
-                unsorted_cells_spike_rates_dict['Cell'] = cell['Cell']
-                unsorted_cells_spike_rates_dict['Date'] = row['Date']
-                unsorted_cells_spike_rates_dict['Round No.'] = row['Round No.']
-                unsorted_cells_spike_rates_dict['Time Window'] = cell['Time Window']
-                results.append(unsorted_cells_spike_rates_dict)
-
-            else:  # sorted cells
-                sorted_cells_spike_rates = compute_average_spike_rate_for_single_neuron_for_specific_time_window(
-                    sorted_data, cell['Cell'], cell['Time Window'])
-                sorted_cells_spike_rates_dict = sorted_cells_spike_rates.to_dict(orient='records')[0]
-                sorted_cells_spike_rates_dict['Cell'] = cell['Cell']
-                sorted_cells_spike_rates_dict['Date'] = row['Date']
-                sorted_cells_spike_rates_dict['Round No.'] = row['Round No.']
-                sorted_cells_spike_rates_dict['Time Window'] = cell['Time Window']
-                results.append(sorted_cells_spike_rates_dict)
-
-    all_spike_rates = pd.DataFrame(results)
-    all_spike_rates.set_index('Cell', inplace=True)
-
-    return all_spike_rates
 
 
 def create_overall_plot_for_single_feature_linear_regression_analysis(feature_matrix, response):
