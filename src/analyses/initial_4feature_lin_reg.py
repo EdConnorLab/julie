@@ -84,7 +84,7 @@ def get_spike_count_for_single_neuron_with_time_window(cell_metadata):
 
     results = []
     for _, row in experimental_rounds.iterrows():
-        pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'].strftime("%Y-%m-%d"), row['Round No.'])
+        pickle_filepath, _, round_dir_path = reader.get_metadata_for_spike_analysis(row['Date'], row['Round No.'])
         raw_trial_data = read_pickle(pickle_filepath)
         sorted_file = round_dir_path / 'sorted_spikes.pkl'
 
@@ -95,8 +95,12 @@ def get_spike_count_for_single_neuron_with_time_window(cell_metadata):
         for _, cell in cells.iterrows():
             if 'Unit' not in cell['Cell']:  # unsorted cells
                 cell['Cell'] = channel_enum_resolvers.convert_to_enum(cell['Cell'])
+                if isinstance(cell['Time Window'], str):
+                    time_window = tuple(float(num) for num in cell['Time Window'].strip('()').split(','))
+                else:
+                    time_window = cell['Time Window']
                 unsorted_cells_spike_count = count_spikes_for_specific_cell_time_windowed(raw_trial_data, cell['Cell'],
-                                                                                          cell['Time Window'])
+                                                                                          time_window)
                 unsorted_cells_spike_count_dict = unsorted_cells_spike_count.to_dict(orient='records')[0]
                 unsorted_cells_spike_count_dict['Cell'] = cell['Cell']
                 unsorted_cells_spike_count_dict['Date'] = row['Date']
