@@ -1,12 +1,35 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from scipy.ndimage import gaussian_filter1d
 
+from anova_on_spike_counts import perform_anova_on_dataframe_rows_for_time_windowed
 from cusum import extract_consecutive_ranges, extract_values_from_ranges
 from monkey_names import Zombies
 from response_window_finder import compute_fractional_and_rate_of_change
-from spike_count import get_spike_counts_for_time_chunks
+from spike_count import get_spike_counts_for_time_chunks, get_spike_count_for_single_neuron_with_time_window
 from spike_rate_computation import get_raw_data_and_channels_from_files
+
+def unique_elements(list_of_lists):
+    flat_list = [item for sublist in list_of_lists for item in sublist] # Flatten the list of lists into a single list
+    unique = list(set(flat_list)) # Remove duplicates
+
+    return sorted(unique)
+
+def fill_missing_ones(numbers):
+    if not numbers:
+        return []
+
+    filled = []
+    i = 0
+    while i < len(numbers) - 1:
+        filled.append(numbers[i])
+        if numbers[i + 1] == numbers[i] + 2:
+            filled.append(numbers[i] + 1)
+        i += 1
+    filled.append(numbers[len(numbers) - 1])
+    return filled
+
 
 def expand_window_from_max_threshold(spike_count, threshold = 0.5):
     print(spike_count)
@@ -49,13 +72,6 @@ def expand_window_from_max_threshold(spike_count, threshold = 0.5):
     return final_windows, spike_values_in_window
 
 
-def unique_elements(list_of_lists):
-    flat_list = [item for sublist in list_of_lists for item in sublist] # Flatten the list of lists into a single list
-    unique = list(set(flat_list)) # Remove duplicates
-
-    return sorted(unique)
-
-
 def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     max_value = max(spike_count)
     start_threshold = 0.7
@@ -91,8 +107,6 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
         pass
         # print(f"no spikes detected")
 
-
-
     # remove duplicates
     #print(f"spike count {spike_count}")
     win_indices = unique_elements(all_windows)
@@ -105,20 +119,6 @@ def expand_window_from_dynamic_threshold(spike_count, threshold = 0.5):
     spike_values_in_window = [spike_count[i] for i in final_win_indices]
     print(f"all spike values: {spike_values_in_window}")
     return final_windows, spike_values_in_window, final_win_indices
-
-def fill_missing_ones(numbers):
-    if not numbers:
-        return []
-
-    filled = []
-    i = 0
-    while i < len(numbers) - 1:
-        filled.append(numbers[i])
-        if numbers[i + 1] == numbers[i] + 2:
-            filled.append(numbers[i] + 1)
-        i += 1
-    filled.append(numbers[len(numbers) - 1])
-    return filled
 
 if __name__ == '__main__':
 
@@ -158,12 +158,12 @@ if __name__ == '__main__':
                 t_values_at_change_points = [rounded_time[i] for i in win_indices]
                 # print(f"---------------For {ind}: {spike_values}")
                 # print(f"---------------For {ind}: {time_windows}")
-
+                # smoothed_data = gaussian_filter1d(spike_total, sigma = 0.8)
                 # # Plot
                 plt.figure(figsize=(12, 6))
                 plt.plot(time[:len(spike_total)], spike_total, label='Total Spike Count')
                 plt.scatter(t_values_at_change_points, y_values_at_change_points, color='red', zorder=5)
-
+                # plt.plot(time[:len(smoothed_data)], smoothed_data, label='smoothed data')
                 # Using your function to get consecutive ranges
                 consecutive_ranges = extract_consecutive_ranges(win_indices)
                 print(f"consecutive ranges: {consecutive_ranges}")
@@ -193,3 +193,28 @@ if __name__ == '__main__':
     print(results_sorted.shape)
     results_expanded = results_sorted.explode('Time Window')
     results_expanded.to_excel('fit_window_after_explode.xlsx')
+
+    '''
+        Date Created: 2025-01-29
+        ANOVA for windows found from fitting window on max count algorithm
+    '''
+    results_expanded['Time Window'] = results_expanded['Time Window'].apply(
+        lambda s: tuple(int(float(num) * 1000) for num in s.strip('()').split(',')))
+
+    print(
+        "----------------------------------------------- fit windows ----------------------------------------------------------")
+    print(results_expanded)
+    fit_spike_count = get_spike_count_for_single_neuron_with_time_window(results_expanded)
+
+    print(fit_spike_count)
+    zombies_columns = [col for col in zombies if col in fit_spike_count.columns]
+    additional_columns = ['Date', 'Round No.', 'Time Window']
+    zombies_fit_spike_count = fit_spike_count[zombies_columns + additional_columns]
+
+    fit_anova_results, fit_sig_results = perform_anova_on_dataframe_rows_for_time_windowed(zombies_fit_spike_count)
+    print('------------------------------------ fit window results -----------------------------------')
+    # print(fit_anova_results)
+    print(fit_sig_results)
+    fit_anova_results.to_excel('fit_anova_results.xlsx')
+    fit_sig_results.to_excel('fit_sig_results.xlsx')
+
