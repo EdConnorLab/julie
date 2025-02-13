@@ -1,4 +1,6 @@
 import pandas as pd
+from intan.spike_file import fetch_spike_tstamps_from_file
+import os
 
 import channel_enum_resolvers
 from channel_enum_resolvers import is_channel_in_dict, get_value_from_dict_with_channel, drop_duplicate_channels
@@ -23,6 +25,7 @@ get_average_spike_rates_for_each_monkey:
     compute_average_spike_rates_from_sorted_data
     
 compute_average_spike_rate_for_single_neuron_for_specific_time_window
+compute_average_spike_rates_for_list_of_cells_with_time_windows
 
 compute_population_spike_rates_for_ER
 compute_population_spike_rates_for_AMG
@@ -41,6 +44,12 @@ raw_unsorted_data is a pandas dataframe with the following columns:
 
 """
 
+def get_raw_spike_tstamp_data(date, round_number):
+    reader = RecordingMetadataReader()
+    _, valid_channels, round_dir_path = reader.get_metadata_for_spike_analysis(date, round_number)
+    spike_path = os.path.join(round_dir_path, "spike.dat")
+    spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(spike_path)
+    return spike_tstamps_for_channels, sample_rate
 
 def get_raw_data_and_channels_from_files(date, round_number):
     reader = RecordingMetadataReader()
