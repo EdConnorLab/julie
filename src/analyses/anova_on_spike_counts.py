@@ -108,49 +108,6 @@ def two_sample_t_test(df):
     # TODO: finish writing this function
 
 if __name__ == '__main__':
-    '''
-    Date Created: 2025-01-29
-    ANOVA for windows found from cusum or max count algorithm
-    '''
-    zombies = [member.value for name, member in Zombies.__members__.items()]
-    del zombies[6]
-    del zombies[-1]
-    cusum_excel = pd.ExcelFile("/home/connorlab/Documents/GitHub/Julie/src/analyses/response_window_finder/cusum_window_after_explode.xlsx")
-    cusum_windows = cusum_excel.parse(cusum_excel.sheet_names[0])
-    cusum_windows['Time Window'] = cusum_windows['Time Window'].apply(lambda s: tuple(int(float(num) * 1000) for num in s.strip('()').split(',')))
-
-    fit_excel = pd.ExcelFile("/home/connorlab/Documents/GitHub/Julie/src/analyses/response_window_finder/fit_window_after_explode.xlsx")
-    fit_windows = fit_excel.parse(fit_excel.sheet_names[0])
-    fit_windows['Time Window'] = fit_windows['Time Window'].apply(lambda s: tuple(int(float(num) * 1000) for num in s.strip('()').split(',')))
-
-    print("--------------------------------------------- cusum windows ----------------------------------------------------------")
-    print(cusum_windows)
-    print("----------------------------------------------- fit windows ----------------------------------------------------------")
-    print(fit_windows)
-    cusum_spike_count = get_spike_count_for_single_neuron_with_time_window(cusum_windows)
-    fit_spike_count = get_spike_count_for_single_neuron_with_time_window(fit_windows)
-    print(cusum_spike_count)
-    print(fit_spike_count)
-    zombies_columns = [col for col in zombies if col in cusum_spike_count.columns]
-    additional_columns = ['Date', 'Round No.', 'Time Window']
-    zombies_cusum_spike_count = cusum_spike_count[zombies_columns + additional_columns]
-    zombies_fit_spike_count = fit_spike_count[zombies_columns + additional_columns]
-
-    cusum_anova_results, cusum_sig_results = perform_anova_on_dataframe_rows_for_time_windowed(zombies_cusum_spike_count)
-
-    print('------------------------------------ cusum window results -----------------------------------')
-    # print(cusum_anova_results)
-    print(cusum_sig_results)
-    cusum_anova_results.to_excel('cusum_anova_results.xlsx')
-    cusum_sig_results.to_excel('cusum_sig_results.xlsx')
-
-    fit_anova_results, fit_sig_results = perform_anova_on_dataframe_rows_for_time_windowed(zombies_fit_spike_count)
-    print('------------------------------------ fit window results -----------------------------------')
-    # print(fit_anova_results)
-    print(fit_sig_results)
-    fit_anova_results.to_excel('fit_anova_results.xlsx')
-    fit_sig_results.to_excel('fit_sig_results.xlsx')
-
 
     '''
     Date Created : 2024-04-29
