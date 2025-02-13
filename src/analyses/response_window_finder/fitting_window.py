@@ -4,9 +4,8 @@ from matplotlib import pyplot as plt
 from scipy.ndimage import gaussian_filter1d
 
 from anova_on_spike_counts import perform_anova_on_dataframe_rows_for_time_windowed
-from cusum import extract_consecutive_ranges, extract_values_from_ranges
+from cusum import extract_consecutive_ranges, find_corresponding_values_for_index_ranges
 from monkey_names import Zombies
-from response_window_finder import compute_fractional_and_rate_of_change
 from spike_count import get_spike_counts_for_time_chunks, get_spike_count_for_single_neuron_with_time_window
 from spike_rate_computation import get_raw_data_and_channels_from_files
 
@@ -143,12 +142,12 @@ if __name__ == '__main__':
         time_chunk_size = 0.05  # in sec
 
         spike_counts = get_spike_counts_for_time_chunks(zombies, raw_unsorted_data, valid_channels, time_chunk_size)
-        fractional_and_rate_of_change = compute_fractional_and_rate_of_change(raw_unsorted_data, zombies, valid_channels, time_chunk_size)
-        total_sum = fractional_and_rate_of_change['total_sum']
+        spike_counts['total_sum'] = spike_counts.apply(lambda row: [sum(elements) for elements in zip(*row)], axis=1)
+        total_sum = spike_counts['total_sum']
         # print(total_sum)
         for channel, spike_total in total_sum.items():
             windows1, spike_values, win_indices = expand_window_from_dynamic_threshold(spike_total, threshold=0.5)
-            time_windows = extract_values_from_ranges(windows1, rounded_time)
+            time_windows = find_corresponding_values_for_index_ranges(windows1, rounded_time)
 
             if len(windows1) > 0:
                 print('')
